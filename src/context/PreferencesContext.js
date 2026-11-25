@@ -103,20 +103,28 @@ export function PreferencesProvider({ children }) {
   const triggerHaptic = useCallback(
     (style = 'light') => {
       if (!prefs.hapticEnabled) return;
-      let promise;
-      if (style === 'selection' || style === 'number' || style === 'light') {
-        promise = Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      } else if (style === 'operator' || style === 'delete') {
-        promise = Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      } else if (style === 'clear') {
-        promise = Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      } else if (style === 'equals') {
-        promise = Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      } else {
-        promise = Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      let impactStyle = Haptics.ImpactFeedbackStyle.Light;
+      if (
+        style === 'delete' ||
+        style === 'clear' ||
+        style === 'equals' ||
+        style === 'medium'
+      ) {
+        impactStyle = Haptics.ImpactFeedbackStyle.Medium;
       }
-      Promise.resolve(promise).catch(() => {
-        // Gracefully ignore on devices without haptic hardware
+
+      Haptics.impactAsync(impactStyle).catch((err) => {
+        if (__DEV__) {
+          console.warn('[Haptics] impactAsync failed, attempting Android fallback:', err);
+        }
+        return Haptics.performAndroidHapticsAsync(
+          Haptics.AndroidHaptics.Keyboard_Tap
+        ).catch((fallbackErr) => {
+          if (__DEV__) {
+            console.warn('[Haptics] Unavailable on this device:', fallbackErr);
+          }
+        });
       });
     },
     [prefs.hapticEnabled]

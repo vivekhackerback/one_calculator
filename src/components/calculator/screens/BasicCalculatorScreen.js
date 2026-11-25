@@ -23,6 +23,10 @@ import {
   formatIndianNumber,
   numberToIndianWords,
 } from '../../../utils/indianFormat';
+import {
+  calculateDynamicFontSize,
+  tokenizeExpressionForDisplay,
+} from '../../../utils/calculators/displaySize';
 import { CalculatorKey } from '../CalculatorKey';
 
 const GAP = 10;
@@ -37,7 +41,7 @@ export function BasicCalculatorScreen({
   const { theme, isDark } = useTheme();
   const { triggerHaptic } = usePreferences();
   const insets = useSafeAreaInsets();
-  const { height: windowHeight } = useWindowDimensions();
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
 
   const [state, dispatch] = useReducer(
     reduceCalculatorState,
@@ -45,6 +49,7 @@ export function BasicCalculatorScreen({
   );
   const [copied, setCopied] = useState(false);
   const [keypadHeight, setKeypadHeight] = useState(0);
+  const [displayWidth, setDisplayWidth] = useState(0);
 
   const stateRef = useRef(state);
   useEffect(() => {
@@ -186,6 +191,43 @@ export function BasicCalculatorScreen({
     }
   }, []);
 
+  const handleDisplayLayout = useCallback((e) => {
+    const w = e.nativeEvent.layout.width;
+    if (w > 0) {
+      setDisplayWidth((prev) => (Math.abs(prev - w) > 1 ? w : prev));
+    }
+  }, []);
+
+  const effectiveDisplayWidth =
+    displayWidth > 0 ? displayWidth : Math.max(200, windowWidth - 56);
+
+  const resultFontMetrics = useMemo(
+    () =>
+      calculateDynamicFontSize({
+        text: formattedResult,
+        availableWidth: effectiveDisplayWidth,
+        maxFontSize: 48,
+        minFontSize: 18,
+      }),
+    [formattedResult, effectiveDisplayWidth]
+  );
+
+  const expressionSegments = useMemo(
+    () => tokenizeExpressionForDisplay(formattedExpression),
+    [formattedExpression]
+  );
+
+  const operatorTextColors = useMemo(
+    () => ({
+      '+': theme.colors.opPlusText,
+      '−': theme.colors.opMinusText,
+      '×': theme.colors.opMultiplyText,
+      '÷': theme.colors.opDivideText,
+      '%': theme.colors.opPercentText,
+    }),
+    [theme.colors]
+  );
+
   const effectiveKeypadHeight =
     keypadHeight > 0 ? keypadHeight : Math.max(300, windowHeight * 0.54);
   const rowHeight = Math.max(44, Math.floor((effectiveKeypadHeight - GAP * 5) / 6));
@@ -198,19 +240,31 @@ export function BasicCalculatorScreen({
   const numText = theme.colors.text;
   const keyBorder = isDark ? theme.colors.border : '#E2E8F0';
 
-  const opBg = theme.colors.keypadOperatorBg;
-  const opPressed = isDark ? '#1D4ED8' : '#BFDBFE';
-  const opText = theme.colors.keypadOperatorText;
+  const clearBg = theme.colors.keypadClearBg;
+  const clearPressed = theme.colors.keypadClearPressedBg;
+  const clearText = theme.colors.keypadClearText;
 
-  const clearBg = theme.colors.dangerSoft;
-  const clearPressed = isDark ? '#7F1D1D' : '#FECACA';
-  const clearText = theme.colors.danger;
+  const deleteBg = theme.colors.keypadDeleteBg;
+  const deletePressed = theme.colors.keypadDeletePressedBg;
+  const deleteText = theme.colors.keypadDeleteText;
+
+  const percentBg = theme.colors.keypadPercentBg;
+  const percentPressed = theme.colors.keypadPercentPressedBg;
+
+  const divideBg = theme.colors.keypadDivideBg;
+  const dividePressed = theme.colors.keypadDividePressedBg;
+
+  const multiplyBg = theme.colors.keypadMultiplyBg;
+  const multiplyPressed = theme.colors.keypadMultiplyPressedBg;
+
+  const minusBg = theme.colors.keypadMinusBg;
+  const minusPressed = theme.colors.keypadMinusPressedBg;
 
   const plusBg = theme.colors.keypadPlusBg;
-  const plusPressed = '#0369A1';
+  const plusPressed = theme.colors.keypadPlusPressedBg;
 
-  const eqBg = theme.colors.primary;
-  const eqPressed = '#1D4ED8';
+  const eqBg = theme.colors.keypadEqualsBg;
+  const eqPressed = theme.colors.keypadEqualsPressedBg;
 
   return (
     <View
@@ -292,22 +346,41 @@ export function BasicCalculatorScreen({
           ) : null}
         </View>
 
-        <View style={styles.displayNumbers}>
+        <View style={styles.displayNumbers} onLayout={handleDisplayLayout}>
           <Text
-            numberOfLines={2}
-            adjustsFontSizeToFit
-            minimumFontScale={0.55}
+            numberOfLines={3}
             selectable
             style={[styles.expressionText, { color: theme.colors.textSecondary }]}
           >
-            {formattedExpression || ' '}
+            {expressionSegments.length > 0
+              ? expressionSegments.map((seg, idx) =>
+                  seg.operator ? (
+                    <Text
+                      key={`${idx}-${seg.operator}`}
+                      style={{
+                        color: operatorTextColors[seg.operator],
+                        fontWeight: '700',
+                      }}
+                    >
+                      {seg.text}
+                    </Text>
+                  ) : (
+                    seg.text
+                  )
+                )
+              : ' '}
           </Text>
           <Text
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.38}
+            numberOfLines={resultFontMetrics.overflowsSingleLine ? 3 : 1}
             selectable
-            style={[styles.resultText, { color: theme.colors.text }]}
+            style={[
+              styles.resultText,
+              {
+                color: theme.colors.text,
+                fontSize: resultFontMetrics.fontSize,
+                lineHeight: Math.round(resultFontMetrics.fontSize * 1.16),
+              },
+            ]}
           >
             {formattedResult}
           </Text>
@@ -325,6 +398,7 @@ export function BasicCalculatorScreen({
         {/* Row 1: AC | BACK | % | ÷ */}
         <View style={[styles.row, { height: rowHeight }]}>
           <CalculatorKey
+            keyId="AC"
             label="AC"
             backgroundColor={clearBg}
             pressedBackgroundColor={clearPressed}
@@ -332,44 +406,48 @@ export function BasicCalculatorScreen({
             borderRadius={keyRadius}
             fontSize={keyFontSize * 0.88}
             onPressInHaptic={hapticClear}
-            onPress={() => pressKey('AC')}
+            onPressKey={pressKey}
           />
           <CalculatorKey
+            keyId="BACK"
             label="BACK"
             accessibilityLabel="Backspace"
-            icon={<Delete size={Math.round(keyFontSize * 0.95)} color={opText} />}
-            backgroundColor={opBg}
-            pressedBackgroundColor={opPressed}
-            textColor={opText}
+            icon={<Delete size={Math.round(keyFontSize * 0.95)} color={deleteText} />}
+            backgroundColor={deleteBg}
+            pressedBackgroundColor={deletePressed}
+            textColor={deleteText}
             borderRadius={keyRadius}
             onPressInHaptic={hapticDelete}
-            onPress={() => pressKey('BACK')}
+            onPressKey={pressKey}
           />
           <CalculatorKey
+            keyId="%"
             label="%"
-            backgroundColor={opBg}
-            pressedBackgroundColor={opPressed}
-            textColor={opText}
+            backgroundColor={percentBg}
+            pressedBackgroundColor={percentPressed}
+            textColor="#FFFFFF"
             borderRadius={keyRadius}
             fontSize={keyFontSize}
             onPressInHaptic={hapticOperator}
-            onPress={() => pressKey('%')}
+            onPressKey={pressKey}
           />
           <CalculatorKey
+            keyId="÷"
             label="÷"
-            backgroundColor={opBg}
-            pressedBackgroundColor={opPressed}
-            textColor={opText}
+            backgroundColor={divideBg}
+            pressedBackgroundColor={dividePressed}
+            textColor="#FFFFFF"
             borderRadius={keyRadius}
             fontSize={keyFontSize * 1.15}
             onPressInHaptic={hapticOperator}
-            onPress={() => pressKey('÷')}
+            onPressKey={pressKey}
           />
         </View>
 
         {/* Row 2: 7 | 8 | 9 | × */}
         <View style={[styles.row, { height: rowHeight }]}>
           <CalculatorKey
+            keyId="7"
             label="7"
             backgroundColor={numBg}
             pressedBackgroundColor={numPressed}
@@ -378,9 +456,10 @@ export function BasicCalculatorScreen({
             borderRadius={keyRadius}
             fontSize={keyFontSize}
             onPressInHaptic={hapticNumber}
-            onPress={() => pressKey('7')}
+            onPressKey={pressKey}
           />
           <CalculatorKey
+            keyId="8"
             label="8"
             backgroundColor={numBg}
             pressedBackgroundColor={numPressed}
@@ -389,9 +468,10 @@ export function BasicCalculatorScreen({
             borderRadius={keyRadius}
             fontSize={keyFontSize}
             onPressInHaptic={hapticNumber}
-            onPress={() => pressKey('8')}
+            onPressKey={pressKey}
           />
           <CalculatorKey
+            keyId="9"
             label="9"
             backgroundColor={numBg}
             pressedBackgroundColor={numPressed}
@@ -400,23 +480,25 @@ export function BasicCalculatorScreen({
             borderRadius={keyRadius}
             fontSize={keyFontSize}
             onPressInHaptic={hapticNumber}
-            onPress={() => pressKey('9')}
+            onPressKey={pressKey}
           />
           <CalculatorKey
+            keyId="×"
             label="×"
-            backgroundColor={opBg}
-            pressedBackgroundColor={opPressed}
-            textColor={opText}
+            backgroundColor={multiplyBg}
+            pressedBackgroundColor={multiplyPressed}
+            textColor="#FFFFFF"
             borderRadius={keyRadius}
             fontSize={keyFontSize * 1.15}
             onPressInHaptic={hapticOperator}
-            onPress={() => pressKey('×')}
+            onPressKey={pressKey}
           />
         </View>
 
         {/* Row 3: 4 | 5 | 6 | − */}
         <View style={[styles.row, { height: rowHeight }]}>
           <CalculatorKey
+            keyId="4"
             label="4"
             backgroundColor={numBg}
             pressedBackgroundColor={numPressed}
@@ -425,9 +507,10 @@ export function BasicCalculatorScreen({
             borderRadius={keyRadius}
             fontSize={keyFontSize}
             onPressInHaptic={hapticNumber}
-            onPress={() => pressKey('4')}
+            onPressKey={pressKey}
           />
           <CalculatorKey
+            keyId="5"
             label="5"
             backgroundColor={numBg}
             pressedBackgroundColor={numPressed}
@@ -436,9 +519,10 @@ export function BasicCalculatorScreen({
             borderRadius={keyRadius}
             fontSize={keyFontSize}
             onPressInHaptic={hapticNumber}
-            onPress={() => pressKey('5')}
+            onPressKey={pressKey}
           />
           <CalculatorKey
+            keyId="6"
             label="6"
             backgroundColor={numBg}
             pressedBackgroundColor={numPressed}
@@ -447,17 +531,18 @@ export function BasicCalculatorScreen({
             borderRadius={keyRadius}
             fontSize={keyFontSize}
             onPressInHaptic={hapticNumber}
-            onPress={() => pressKey('6')}
+            onPressKey={pressKey}
           />
           <CalculatorKey
+            keyId="−"
             label="−"
-            backgroundColor={opBg}
-            pressedBackgroundColor={opPressed}
-            textColor={opText}
+            backgroundColor={minusBg}
+            pressedBackgroundColor={minusPressed}
+            textColor="#FFFFFF"
             borderRadius={keyRadius}
             fontSize={keyFontSize * 1.15}
             onPressInHaptic={hapticOperator}
-            onPress={() => pressKey('−')}
+            onPressKey={pressKey}
           />
         </View>
 
@@ -466,6 +551,7 @@ export function BasicCalculatorScreen({
           <View style={styles.leftThreeCols}>
             <View style={[styles.row, { height: rowHeight }]}>
               <CalculatorKey
+                keyId="1"
                 label="1"
                 backgroundColor={numBg}
                 pressedBackgroundColor={numPressed}
@@ -474,9 +560,10 @@ export function BasicCalculatorScreen({
                 borderRadius={keyRadius}
                 fontSize={keyFontSize}
                 onPressInHaptic={hapticNumber}
-                onPress={() => pressKey('1')}
+                onPressKey={pressKey}
               />
               <CalculatorKey
+                keyId="2"
                 label="2"
                 backgroundColor={numBg}
                 pressedBackgroundColor={numPressed}
@@ -485,9 +572,10 @@ export function BasicCalculatorScreen({
                 borderRadius={keyRadius}
                 fontSize={keyFontSize}
                 onPressInHaptic={hapticNumber}
-                onPress={() => pressKey('2')}
+                onPressKey={pressKey}
               />
               <CalculatorKey
+                keyId="3"
                 label="3"
                 backgroundColor={numBg}
                 pressedBackgroundColor={numPressed}
@@ -496,12 +584,13 @@ export function BasicCalculatorScreen({
                 borderRadius={keyRadius}
                 fontSize={keyFontSize}
                 onPressInHaptic={hapticNumber}
-                onPress={() => pressKey('3')}
+                onPressKey={pressKey}
               />
             </View>
 
             <View style={[styles.row, { height: rowHeight }]}>
               <CalculatorKey
+                keyId="+/-"
                 label="+/-"
                 backgroundColor={numBg}
                 pressedBackgroundColor={numPressed}
@@ -510,9 +599,10 @@ export function BasicCalculatorScreen({
                 borderRadius={keyRadius}
                 fontSize={keyFontSize * 0.85}
                 onPressInHaptic={hapticNumber}
-                onPress={() => pressKey('+/-')}
+                onPressKey={pressKey}
               />
               <CalculatorKey
+                keyId="0"
                 label="0"
                 backgroundColor={numBg}
                 pressedBackgroundColor={numPressed}
@@ -521,9 +611,10 @@ export function BasicCalculatorScreen({
                 borderRadius={keyRadius}
                 fontSize={keyFontSize}
                 onPressInHaptic={hapticNumber}
-                onPress={() => pressKey('0')}
+                onPressKey={pressKey}
               />
               <CalculatorKey
+                keyId="."
                 label="."
                 backgroundColor={numBg}
                 pressedBackgroundColor={numPressed}
@@ -532,13 +623,14 @@ export function BasicCalculatorScreen({
                 borderRadius={keyRadius}
                 fontSize={keyFontSize * 1.15}
                 onPressInHaptic={hapticNumber}
-                onPress={() => pressKey('.')}
+                onPressKey={pressKey}
               />
             </View>
           </View>
 
           <View style={styles.rightPlusCol}>
             <CalculatorKey
+              keyId="+"
               label="+"
               accessibilityLabel="Plus"
               icon={
@@ -552,9 +644,10 @@ export function BasicCalculatorScreen({
               pressedBackgroundColor={plusPressed}
               textColor="#FFFFFF"
               borderRadius={keyRadius}
+              elevation={5}
               style={{ height: tallPlusHeight }}
               onPressInHaptic={hapticOperator}
-              onPress={() => pressKey('+')}
+              onPressKey={pressKey}
             />
           </View>
         </View>
@@ -562,6 +655,7 @@ export function BasicCalculatorScreen({
         {/* Row 6: Prominent Full-Width Equals Button */}
         <View style={[styles.row, { height: rowHeight }]}>
           <CalculatorKey
+            keyId="="
             label="="
             accessibilityLabel="Equals"
             backgroundColor={eqBg}
@@ -569,8 +663,9 @@ export function BasicCalculatorScreen({
             textColor="#FFFFFF"
             borderRadius={keyRadius}
             fontSize={keyFontSize * 1.25}
+            elevation={5}
             onPressInHaptic={hapticEquals}
-            onPress={() => pressKey('=')}
+            onPressKey={pressKey}
           />
         </View>
       </View>
@@ -610,18 +705,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   displayNumbers: {
+    width: '100%',
     alignItems: 'flex-end',
   },
   expressionText: {
-    fontSize: 24,
+    width: '100%',
+    fontSize: 22,
     fontWeight: '600',
     textAlign: 'right',
     minHeight: 30,
   },
   resultText: {
+    width: '100%',
     fontSize: 48,
     fontWeight: '700',
     textAlign: 'right',
+    fontVariant: ['tabular-nums'],
     marginTop: 2,
   },
   wordsText: {

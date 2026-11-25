@@ -2,13 +2,13 @@
 
 ## Progress Summary
 
-- **Total Tasks:** 30
-- **Completed Tasks:** 30
+- **Total Tasks:** 31
+- **Completed Tasks:** 31
 - **Pending Tasks:** 0
-- **Current Task:** None (All MVP tasks completed)
-- **Latest Test Results:** Premium Basic Calculator Upgrade: `npm test` (54/54 passed), `npx expo lint` (0 errors), `npx expo export --platform android` (bundled 3473 modules cleanly).
-- **Known Issues:** None
-- **Next Task:** None — ready for `eas build --platform android` or `npx expo start --android`
+- **Current Task:** None (All tasks completed)
+- **Latest Test Results:** Basic Calculator Haptics, Operation Colors & Dynamic Display Upgrade: `npm test` (58/58 passed), `npx expo lint`, `npx expo export --platform android`.
+- **Known Issues:** Physical Android device haptic verification pending (no Android device connected via `adb` in this environment).
+- **Next Task:** Test on a physical Android device (`npx expo start --android` or `eas build --platform android`).
 
 ---
 
@@ -400,4 +400,12 @@
   - Ensure `TASKS.md` is 100% updated and all tasks are marked `[x] COMPLETED`.
 - **Testing Requirements:**
   - `npx expo-doctor`, `npx expo lint`, `npm test`, and `npx expo export --platform android` all succeed.
+- **Completion Status:** COMPLETED
+
+- [x] **Task ID:** T12.3
+- **Task Name:** Improve Basic Calculator — Haptics, Operation Colors & Dynamic Number Display
+- **Description:** Add `VIBRATE` permission in `app.json`, refine `expo-haptics` fallback to `Keyboard_Tap` in `PreferencesContext.js`, add distinct operation colors (`+` green, `−` red, `×` blue, `÷` purple, `%` orange, `=` teal accent, `AC` neutral grey, `⌫` soft red) across light/dark themes and expression display, smooth release color restoration in `CalculatorKey.js`, and dynamic width-based font resizing in `displaySize.js` + `BasicCalculatorScreen.js`.
+- **Dependencies:** T5.1, T11.1, T12.2
+- **Testing Requirements:**
+  - `npm test` (58/58 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed.
 - **Completion Status:** COMPLETED
