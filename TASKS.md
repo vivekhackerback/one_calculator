@@ -2,11 +2,11 @@
 
 ## Progress Summary
 
-- **Total Tasks:** 39
-- **Completed Tasks:** 39
+- **Total Tasks:** 40
+- **Completed Tasks:** 40
 - **Pending Tasks:** 0
 - **Current Task:** None (All tasks completed)
-- **Latest Test Results:** Navigation Theme Background & Draft-Only Calculator Restoration: `npm test` (66/66 passed), `npx expo lint` (0 errors), `npx expo export --platform android`.
+- **Latest Test Results:** Navigation Performance & Smooth Transitions Optimization: `npm test` (66/66 passed), `npx expo lint` (0 errors), `npx expo export --platform android`.
 - **Known Issues:** Physical Android device verification pending (no Android device connected via `adb` in this environment).
 - **Next Task:** Verify on physical Android device (`npx expo start --android` or `eas build --platform android`).
 
@@ -450,10 +450,26 @@
   - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
 - **Completion Status:** COMPLETED
 
+- [x] **Task ID:** T12.12
+- **Task Name:** Navigation Performance & Smooth Transitions Optimization
+- **Description:** Keep tab screens mounted (`lazy: false`, `detachInactiveScreens: false`, `freezeOnBlur: false`), prevent screen detachment on Stack pop (`detachPreviousScreen: false`, `animationDuration: 220`), defer `markCalculatorUsed` via `InteractionManager.runAfterInteractions`, memoize `CalculatorCard`, convert `tools.js` to `FlatList`, and add lazy pagination (`HISTORY_PAGE_SIZE = 60`) for History.
+- **Dependencies:** T12.11
+- **Testing Requirements:**
+  - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
+- **Completion Status:** COMPLETED
+
 - [x] **Task ID:** T12.11
 - **Task Name:** Fix White Screen on Back Navigation & Draft-Only Calculator Restoration
 - **Description:** Wrap `RootNavigator` in `@react-navigation/native` `ThemeProvider` + themed root `View` and set `Tabs` `sceneStyle` background to eliminate white flashes on back navigation; restrict `basic_active_session` restoration strictly to `'draft'` entries, clear active session on `=` (`completed`), and clean up unstarred active drafts on `AC` without touching completed/starred history.
 - **Dependencies:** T12.10
+- **Testing Requirements:**
+  - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
+- **Completion Status:** COMPLETED
+
+- [x] **Task ID:** T12.12
+- **Task Name:** Navigation Performance & Smooth Transitions Optimization
+- **Description:** Keep tab screens mounted (`lazy: false`, `detachInactiveScreens: false`, `freezeOnBlur: false`), prevent screen detachment on Stack pop (`detachPreviousScreen: false`, `animationDuration: 220`), defer `markCalculatorUsed` via `InteractionManager.runAfterInteractions`, memoize `CalculatorCard`, convert `tools.js` to `FlatList`, and add lazy pagination (`HISTORY_PAGE_SIZE = 60`) for History.
+- **Dependencies:** T12.11
 - **Testing Requirements:**
   - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
 - **Completion Status:** COMPLETED
@@ -482,10 +498,26 @@
   - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
 - **Completion Status:** COMPLETED
 
+- [x] **Task ID:** T12.12
+- **Task Name:** Navigation Performance & Smooth Transitions Optimization
+- **Description:** Keep tab screens mounted (`lazy: false`, `detachInactiveScreens: false`, `freezeOnBlur: false`), prevent screen detachment on Stack pop (`detachPreviousScreen: false`, `animationDuration: 220`), defer `markCalculatorUsed` via `InteractionManager.runAfterInteractions`, memoize `CalculatorCard`, convert `tools.js` to `FlatList`, and add lazy pagination (`HISTORY_PAGE_SIZE = 60`) for History.
+- **Dependencies:** T12.11
+- **Testing Requirements:**
+  - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
+- **Completion Status:** COMPLETED
+
 - [x] **Task ID:** T12.11
 - **Task Name:** Fix White Screen on Back Navigation & Draft-Only Calculator Restoration
 - **Description:** Wrap `RootNavigator` in `@react-navigation/native` `ThemeProvider` + themed root `View` and set `Tabs` `sceneStyle` background to eliminate white flashes on back navigation; restrict `basic_active_session` restoration strictly to `'draft'` entries, clear active session on `=` (`completed`), and clean up unstarred active drafts on `AC` without touching completed/starred history.
 - **Dependencies:** T12.10
+- **Testing Requirements:**
+  - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
+- **Completion Status:** COMPLETED
+
+- [x] **Task ID:** T12.12
+- **Task Name:** Navigation Performance & Smooth Transitions Optimization
+- **Description:** Keep tab screens mounted (`lazy: false`, `detachInactiveScreens: false`, `freezeOnBlur: false`), prevent screen detachment on Stack pop (`detachPreviousScreen: false`, `animationDuration: 220`), defer `markCalculatorUsed` via `InteractionManager.runAfterInteractions`, memoize `CalculatorCard`, convert `tools.js` to `FlatList`, and add lazy pagination (`HISTORY_PAGE_SIZE = 60`) for History.
+- **Dependencies:** T12.11
 - **Testing Requirements:**
   - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
 - **Completion Status:** COMPLETED
@@ -514,10 +546,26 @@
   - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
 - **Completion Status:** COMPLETED
 
+- [x] **Task ID:** T12.12
+- **Task Name:** Navigation Performance & Smooth Transitions Optimization
+- **Description:** Keep tab screens mounted (`lazy: false`, `detachInactiveScreens: false`, `freezeOnBlur: false`), prevent screen detachment on Stack pop (`detachPreviousScreen: false`, `animationDuration: 220`), defer `markCalculatorUsed` via `InteractionManager.runAfterInteractions`, memoize `CalculatorCard`, convert `tools.js` to `FlatList`, and add lazy pagination (`HISTORY_PAGE_SIZE = 60`) for History.
+- **Dependencies:** T12.11
+- **Testing Requirements:**
+  - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
+- **Completion Status:** COMPLETED
+
 - [x] **Task ID:** T12.11
 - **Task Name:** Fix White Screen on Back Navigation & Draft-Only Calculator Restoration
 - **Description:** Wrap `RootNavigator` in `@react-navigation/native` `ThemeProvider` + themed root `View` and set `Tabs` `sceneStyle` background to eliminate white flashes on back navigation; restrict `basic_active_session` restoration strictly to `'draft'` entries, clear active session on `=` (`completed`), and clean up unstarred active drafts on `AC` without touching completed/starred history.
 - **Dependencies:** T12.10
+- **Testing Requirements:**
+  - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
+- **Completion Status:** COMPLETED
+
+- [x] **Task ID:** T12.12
+- **Task Name:** Navigation Performance & Smooth Transitions Optimization
+- **Description:** Keep tab screens mounted (`lazy: false`, `detachInactiveScreens: false`, `freezeOnBlur: false`), prevent screen detachment on Stack pop (`detachPreviousScreen: false`, `animationDuration: 220`), defer `markCalculatorUsed` via `InteractionManager.runAfterInteractions`, memoize `CalculatorCard`, convert `tools.js` to `FlatList`, and add lazy pagination (`HISTORY_PAGE_SIZE = 60`) for History.
+- **Dependencies:** T12.11
 - **Testing Requirements:**
   - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
 - **Completion Status:** COMPLETED
@@ -546,10 +594,26 @@
   - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
 - **Completion Status:** COMPLETED
 
+- [x] **Task ID:** T12.12
+- **Task Name:** Navigation Performance & Smooth Transitions Optimization
+- **Description:** Keep tab screens mounted (`lazy: false`, `detachInactiveScreens: false`, `freezeOnBlur: false`), prevent screen detachment on Stack pop (`detachPreviousScreen: false`, `animationDuration: 220`), defer `markCalculatorUsed` via `InteractionManager.runAfterInteractions`, memoize `CalculatorCard`, convert `tools.js` to `FlatList`, and add lazy pagination (`HISTORY_PAGE_SIZE = 60`) for History.
+- **Dependencies:** T12.11
+- **Testing Requirements:**
+  - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
+- **Completion Status:** COMPLETED
+
 - [x] **Task ID:** T12.11
 - **Task Name:** Fix White Screen on Back Navigation & Draft-Only Calculator Restoration
 - **Description:** Wrap `RootNavigator` in `@react-navigation/native` `ThemeProvider` + themed root `View` and set `Tabs` `sceneStyle` background to eliminate white flashes on back navigation; restrict `basic_active_session` restoration strictly to `'draft'` entries, clear active session on `=` (`completed`), and clean up unstarred active drafts on `AC` without touching completed/starred history.
 - **Dependencies:** T12.10
+- **Testing Requirements:**
+  - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
+- **Completion Status:** COMPLETED
+
+- [x] **Task ID:** T12.12
+- **Task Name:** Navigation Performance & Smooth Transitions Optimization
+- **Description:** Keep tab screens mounted (`lazy: false`, `detachInactiveScreens: false`, `freezeOnBlur: false`), prevent screen detachment on Stack pop (`detachPreviousScreen: false`, `animationDuration: 220`), defer `markCalculatorUsed` via `InteractionManager.runAfterInteractions`, memoize `CalculatorCard`, convert `tools.js` to `FlatList`, and add lazy pagination (`HISTORY_PAGE_SIZE = 60`) for History.
+- **Dependencies:** T12.11
 - **Testing Requirements:**
   - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
 - **Completion Status:** COMPLETED

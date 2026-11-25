@@ -204,11 +204,11 @@ export async function toggleHistoryStar(id, forcedState = null) {
   return { id, is_starred: nextStarred, starred_at: starredAt };
 }
 
-export async function getHistory(limit = 200) {
+export async function getHistory(limit = 60, offset = 0) {
   const db = await getDatabase();
   return db.getAllAsync(
-    'SELECT * FROM history ORDER BY COALESCE(NULLIF(updated_at, \'\'), created_at) DESC, id DESC LIMIT ?',
-    [limit]
+    "SELECT * FROM history ORDER BY COALESCE(NULLIF(updated_at, ''), created_at) DESC, id DESC LIMIT ? OFFSET ?",
+    [limit, offset]
   );
 }
 

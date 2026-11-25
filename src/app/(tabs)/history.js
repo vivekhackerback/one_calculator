@@ -174,6 +174,8 @@ export default function HistoryScreen() {
   const { triggerHaptic } = usePreferences();
   const {
     history,
+    hasMoreHistory,
+    loadMoreHistory,
     toggleStarHistoryEntry,
     removeHistoryEntry,
     clearAllHistory,
@@ -411,6 +413,8 @@ export default function HistoryScreen() {
             showsVerticalScrollIndicator={false}
             initialNumToRender={12}
             windowSize={7}
+            onEndReached={hasMoreHistory ? loadMoreHistory : undefined}
+            onEndReachedThreshold={0.4}
             removeClippedSubviews
           />
         )}

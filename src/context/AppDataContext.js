@@ -20,11 +20,15 @@ import {
   upsertHistoryEntry,
 } from '../db/database';
 
+const HISTORY_PAGE_SIZE = 60;
+
 const AppDataContext = createContext({
   history: [],
   favoriteIds: [],
   recentIds: [],
   isReady: false,
+  hasMoreHistory: false,
+  loadMoreHistory: async () => {},
   addHistoryEntry: async () => {},
   upsertAutoHistoryEntry: async () => null,
   discardDraftHistoryEntry: async () => {},
@@ -41,18 +45,20 @@ export function AppDataProvider({ children }) {
   const [favoriteIds, setFavoriteIds] = useState([]);
   const [recentIds, setRecentIds] = useState([]);
   const [isReady, setIsReady] = useState(false);
+  const [hasMoreHistory, setHasMoreHistory] = useState(false);
 
   useEffect(() => {
     let active = true;
     (async () => {
       try {
         const [hist, favs, recents] = await Promise.all([
-          getHistory(),
+          getHistory(HISTORY_PAGE_SIZE, 0),
           getFavorites(),
           getRecentTools(),
         ]);
         if (active) {
           setHistory(hist);
+          setHasMoreHistory(hist.length === HISTORY_PAGE_SIZE);
           setFavoriteIds(favs);
           setRecentIds(recents);
           setIsReady(true);
@@ -65,6 +71,23 @@ export function AppDataProvider({ children }) {
       active = false;
     };
   }, []);
+
+  const loadMoreHistory = useCallback(async () => {
+    if (!hasMoreHistory) return;
+    try {
+      const nextBatch = await getHistory(HISTORY_PAGE_SIZE, history.length);
+      if (nextBatch.length > 0) {
+        setHistory((prev) => {
+          const seen = new Set(prev.map((item) => item.id));
+          const unique = nextBatch.filter((item) => !seen.has(item.id));
+          return [...prev, ...unique];
+        });
+      }
+      setHasMoreHistory(nextBatch.length === HISTORY_PAGE_SIZE);
+    } catch {
+      // Ignore pagination errors
+    }
+  }, [hasMoreHistory, history.length]);
 
   const addHistoryEntry = useCallback(async (entry) => {
     try {
@@ -176,6 +199,8 @@ export function AppDataProvider({ children }) {
       favoriteIds,
       recentIds,
       isReady,
+      hasMoreHistory,
+      loadMoreHistory,
       addHistoryEntry,
       upsertAutoHistoryEntry,
       discardDraftHistoryEntry,
@@ -191,6 +216,8 @@ export function AppDataProvider({ children }) {
       favoriteIds,
       recentIds,
       isReady,
+      hasMoreHistory,
+      loadMoreHistory,
       addHistoryEntry,
       upsertAutoHistoryEntry,
       discardDraftHistoryEntry,

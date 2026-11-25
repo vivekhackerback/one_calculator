@@ -1,10 +1,11 @@
+import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Star } from 'lucide-react-native';
 import { getCategoryById } from '../../constants/calculators';
 import { useTheme } from '../../context/ThemeContext';
 import { CalculatorIcon } from './CalculatorIcon';
 
-export function CalculatorCard({
+export const CalculatorCard = memo(function CalculatorCard({
   calculator,
   onPress,
   isFavorite = false,
@@ -92,7 +93,7 @@ export function CalculatorCard({
       )}
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {

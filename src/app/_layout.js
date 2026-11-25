@@ -19,15 +19,24 @@ function RootNavigator() {
           headerStyle: { backgroundColor: theme.colors.surface },
           headerTintColor: theme.colors.text,
           headerShadowVisible: false,
+          freezeOnBlur: false,
+          detachPreviousScreen: false,
         }}
       >
-        <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="(tabs)"
+          options={{
+            freezeOnBlur: false,
+            detachPreviousScreen: false,
+          }}
+        />
         <Stack.Screen
           name="calculator/[id]"
           options={{
             headerShown: true,
             title: 'Calculator',
             animation: 'slide_from_right',
+            animationDuration: 220,
             contentStyle: { backgroundColor: theme.colors.background },
           }}
         />
@@ -38,7 +47,7 @@ function RootNavigator() {
 
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider style={{ flex: 1 }}>
       <ThemeProvider>
         <PreferencesProvider>
           <AppDataProvider>

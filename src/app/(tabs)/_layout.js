@@ -7,8 +7,11 @@ export default function TabsLayout() {
 
   return (
     <Tabs
+      detachInactiveScreens={false}
       screenOptions={{
         headerShown: true,
+        lazy: false,
+        freezeOnBlur: false,
         sceneStyle: {
           backgroundColor: theme.colors.background,
         },
