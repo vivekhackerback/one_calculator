@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { InteractionManager, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { getCalculatorById } from '../../constants/calculators';
 import { useTheme } from '../../context/ThemeContext';
@@ -43,12 +43,21 @@ export default function CalculatorScreen() {
 
   useEffect(() => {
     if (!calculator?.id) return undefined;
-    const task = InteractionManager.runAfterInteractions(() => {
-      markCalculatorUsed(calculator.id);
+    const calcId = calculator.id;
+    if (typeof requestIdleCallback === 'function') {
+      const idleId = requestIdleCallback(() => {
+        markCalculatorUsed(calcId);
+      });
+      return () => {
+        if (typeof cancelIdleCallback === 'function') {
+          cancelIdleCallback(idleId);
+        }
+      };
+    }
+    const rafId = requestAnimationFrame(() => {
+      markCalculatorUsed(calcId);
     });
-    return () => {
-      task.cancel();
-    };
+    return () => cancelAnimationFrame(rafId);
   }, [calculator?.id, markCalculatorUsed]);
 
   if (!calculator) {
