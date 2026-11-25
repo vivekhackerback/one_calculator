@@ -2,11 +2,11 @@
 
 ## Progress Summary
 
-- **Total Tasks:** 34
-- **Completed Tasks:** 34
+- **Total Tasks:** 36
+- **Completed Tasks:** 36
 - **Pending Tasks:** 0
 - **Current Task:** None (All tasks completed)
-- **Latest Test Results:** Equals Result Highlight & Centralized Haptic Service: `npm test` (62/62 passed), `npx expo lint` (0 errors), `npx expo export --platform android`.
+- **Latest Test Results:** 5x4 Keypad Layout with Normal Equals & Tall Plus: `npm test` (62/62 passed), `npx expo lint` (0 errors), `npx expo export --platform android`.
 - **Known Issues:** Physical Android device verification pending (no Android device connected via `adb` in this environment).
 - **Next Task:** Verify on physical Android device (`npx expo start --android` or `eas build --platform android`).
 
@@ -430,6 +430,30 @@
 - **Task Name:** Equals Result Highlight & Centralized Haptic Service
 - **Description:** Add `resultHighlight` theme tokens (`#2563EB` light, `#60A5FA` dark) and animate `BasicCalculatorScreen` result color smoothly on `state.justEvaluated` (resetting on any subsequent input); centralize haptic feedback in `src/services/haptics.js` + `src/services/hapticTypes.js` with `__DEV__` diagnostics and multi-tier Android fallbacks.
 - **Dependencies:** T12.5
+- **Testing Requirements:**
+  - `npm test` (62/62 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
+- **Completion Status:** COMPLETED
+
+- [x] **Task ID:** T12.8
+- **Task Name:** UI Improvement — Normal Equals Button & 5x4 Keypad Layout with Tall Plus
+- **Description:** Convert keypad to a balanced 5x4 grid (`AC BACK % ÷`, `7 8 9 ×`, `4 5 6 −`, `1 2 3` + tall `+`, `0 . =` + tall `+`) with pixel-aligned 4-column widths, normal 1x1 Equals button, and 2-row-tall Plus button.
+- **Dependencies:** T12.7
+- **Testing Requirements:**
+  - `npm test` (62/62 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
+- **Completion Status:** COMPLETED
+
+- [x] **Task ID:** T12.7
+- **Task Name:** Bug Fix — Instant Equals Result Highlight on Touch-Down
+- **Description:** Trigger Equals result highlight immediately on `onPressIn` via `onPressInKey` in `CalculatorKey.js` and `equalsHighlighted` state in `BasicCalculatorScreen.js`, replace 180ms JS-thread `Animated.timing` color ramp with direct `<Text>` color update, and defer SQLite history saving asynchronously via `setTimeout(..., 0)`.
+- **Dependencies:** T12.6
+- **Testing Requirements:**
+  - `npm test` (62/62 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
+- **Completion Status:** COMPLETED
+
+- [x] **Task ID:** T12.8
+- **Task Name:** UI Improvement — Normal Equals Button & 5x4 Keypad Layout with Tall Plus
+- **Description:** Convert keypad to a balanced 5x4 grid (`AC BACK % ÷`, `7 8 9 ×`, `4 5 6 −`, `1 2 3` + tall `+`, `0 . =` + tall `+`) with pixel-aligned 4-column widths, normal 1x1 Equals button, and 2-row-tall Plus button.
+- **Dependencies:** T12.7
 - **Testing Requirements:**
   - `npm test` (62/62 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
 - **Completion Status:** COMPLETED

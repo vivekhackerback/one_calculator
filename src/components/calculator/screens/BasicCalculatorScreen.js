@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import {
-  Animated,
   Pressable,
   Share,
   StyleSheet,
@@ -50,16 +49,9 @@ export function BasicCalculatorScreen({
   );
   const [copied, setCopied] = useState(false);
   const [keypadHeight, setKeypadHeight] = useState(0);
+  const [keypadWidth, setKeypadWidth] = useState(0);
   const [displayWidth, setDisplayWidth] = useState(0);
-  const [resultColorAnim] = useState(() => new Animated.Value(0));
-
-  useEffect(() => {
-    Animated.timing(resultColorAnim, {
-      toValue: state.justEvaluated ? 1 : 0,
-      duration: 180,
-      useNativeDriver: false,
-    }).start();
-  }, [state.justEvaluated, resultColorAnim]);
+  const [equalsHighlighted, setEqualsHighlighted] = useState(false);
 
   const stateRef = useRef(state);
   useEffect(() => {
@@ -132,6 +124,12 @@ export function BasicCalculatorScreen({
     };
   }, [saveCalculationNow]);
 
+  const handleEqualsPressIn = useCallback(() => {
+    if (stateRef.current.expression) {
+      setEqualsHighlighted(true);
+    }
+  }, []);
+
   const pressKey = useCallback(
     (key) => {
       if (key === '=') {
@@ -143,9 +141,19 @@ export function BasicCalculatorScreen({
         if (current.expression) {
           const evaluated = evaluateExpression(current.expression);
           if (evaluated.ok) {
-            saveCalculationNow(current.expression, evaluated.formatted);
+            setEqualsHighlighted(true);
+            const exprSnapshot = current.expression;
+            const formattedSnapshot = evaluated.formatted;
+            // Save history asynchronously so SQLite/context updates never delay UI feedback
+            setTimeout(() => {
+              saveCalculationNow(exprSnapshot, formattedSnapshot);
+            }, 0);
+          } else {
+            setEqualsHighlighted(false);
           }
         }
+      } else {
+        setEqualsHighlighted(false);
       }
       dispatch(key);
     },
@@ -196,9 +204,12 @@ export function BasicCalculatorScreen({
   }, [formattedExpression, formattedResult, resultInWords]);
 
   const handleKeypadLayout = useCallback((e) => {
-    const h = e.nativeEvent.layout.height;
+    const { height: h, width: w } = e.nativeEvent.layout;
     if (h > 0) {
-      setKeypadHeight(h);
+      setKeypadHeight((prev) => (Math.abs(prev - h) > 1 ? h : prev));
+    }
+    if (w > 0) {
+      setKeypadWidth((prev) => (Math.abs(prev - w) > 1 ? w : prev));
     }
   }, []);
 
@@ -269,10 +280,14 @@ export function BasicCalculatorScreen({
   );
 
   const effectiveKeypadHeight =
-    keypadHeight > 0 ? keypadHeight : Math.max(300, windowHeight * 0.54);
-  const rowHeight = Math.max(44, Math.floor((effectiveKeypadHeight - GAP * 5) / 6));
+    keypadHeight > 0 ? keypadHeight : Math.max(280, windowHeight * 0.56);
+  const effectiveKeypadWidth =
+    keypadWidth > 0 ? keypadWidth : Math.max(240, windowWidth - 24);
+  const colWidth = (effectiveKeypadWidth - GAP * 3) / 4;
+  const leftThreeWidth = colWidth * 3 + GAP * 2;
+  const rowHeight = Math.max(48, Math.floor((effectiveKeypadHeight - GAP * 4) / 5));
   const tallPlusHeight = rowHeight * 2 + GAP;
-  const keyFontSize = Math.min(28, Math.max(20, Math.round(rowHeight * 0.36)));
+  const keyFontSize = Math.min(30, Math.max(20, Math.round(rowHeight * 0.36)));
   const keyRadius = Math.min(20, Math.max(12, Math.round(rowHeight * 0.24)));
 
   const numBg = theme.colors.keypadBg;
@@ -306,10 +321,10 @@ export function BasicCalculatorScreen({
   const eqBg = theme.colors.keypadEqualsBg;
   const eqPressed = theme.colors.keypadEqualsPressedBg;
 
-  const resultTextColor = resultColorAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [theme.colors.text, theme.colors.resultHighlight],
-  });
+  const isResultHighlighted = equalsHighlighted || state.justEvaluated;
+  const resultTextColor = isResultHighlighted
+    ? theme.colors.resultHighlight
+    : theme.colors.text;
 
   return (
     <View
@@ -426,7 +441,7 @@ export function BasicCalculatorScreen({
             </Text>
           </View>
           <View style={[styles.resultRegion, { height: resultRegionHeight }]}>
-            <Animated.Text
+            <Text
               numberOfLines={resultFontMetrics.overflowsSingleLine ? 2 : 1}
               selectable
               style={[
@@ -439,7 +454,7 @@ export function BasicCalculatorScreen({
               ]}
             >
               {formattedResult}
-            </Animated.Text>
+            </Text>
           </View>
           <View style={[styles.wordsRegion, { height: wordsRegionHeight }]}>
             <Text
@@ -605,9 +620,9 @@ export function BasicCalculatorScreen({
           />
         </View>
 
-        {/* Rows 4 & 5: Left 3 cols (1 2 3 / +/- 0 .) + Right col tall '+' */}
+        {/* Rows 4 & 5: Left 3 cols (1 2 3 / 0 . =) + Right col tall '+' */}
         <View style={[styles.splitRows, { height: tallPlusHeight }]}>
-          <View style={styles.leftThreeCols}>
+          <View style={[styles.leftThreeCols, { width: leftThreeWidth }]}>
             <View style={[styles.row, { height: rowHeight }]}>
               <CalculatorKey
                 keyId="1"
@@ -649,18 +664,6 @@ export function BasicCalculatorScreen({
 
             <View style={[styles.row, { height: rowHeight }]}>
               <CalculatorKey
-                keyId="+/-"
-                label="+/-"
-                backgroundColor={numBg}
-                pressedBackgroundColor={numPressed}
-                textColor={numText}
-                borderColor={keyBorder}
-                borderRadius={keyRadius}
-                fontSize={keyFontSize * 0.85}
-                onPressInHaptic={hapticNumber}
-                onPressKey={pressKey}
-              />
-              <CalculatorKey
                 keyId="0"
                 label="0"
                 backgroundColor={numBg}
@@ -684,10 +687,24 @@ export function BasicCalculatorScreen({
                 onPressInHaptic={hapticDecimal}
                 onPressKey={pressKey}
               />
+              <CalculatorKey
+                keyId="="
+                label="="
+                accessibilityLabel="Equals"
+                backgroundColor={eqBg}
+                pressedBackgroundColor={eqPressed}
+                textColor="#FFFFFF"
+                borderRadius={keyRadius}
+                fontSize={keyFontSize * 1.15}
+                elevation={4}
+                onPressInKey={handleEqualsPressIn}
+                onPressInHaptic={hapticEquals}
+                onPressKey={pressKey}
+              />
             </View>
           </View>
 
-          <View style={styles.rightPlusCol}>
+          <View style={[styles.rightPlusCol, { width: colWidth }]}>
             <CalculatorKey
               keyId="+"
               label="+"
@@ -709,23 +726,6 @@ export function BasicCalculatorScreen({
               onPressKey={pressKey}
             />
           </View>
-        </View>
-
-        {/* Row 6: Prominent Full-Width Equals Button */}
-        <View style={[styles.row, { height: rowHeight }]}>
-          <CalculatorKey
-            keyId="="
-            label="="
-            accessibilityLabel="Equals"
-            backgroundColor={eqBg}
-            pressedBackgroundColor={eqPressed}
-            textColor="#FFFFFF"
-            borderRadius={keyRadius}
-            fontSize={keyFontSize * 1.25}
-            elevation={5}
-            onPressInHaptic={hapticEquals}
-            onPressKey={pressKey}
-          />
         </View>
       </View>
     </View>
@@ -819,10 +819,8 @@ const styles = StyleSheet.create({
     gap: GAP,
   },
   leftThreeCols: {
-    flex: 3,
     gap: GAP,
   },
   rightPlusCol: {
-    flex: 1,
   },
 });

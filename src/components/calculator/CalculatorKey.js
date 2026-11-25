@@ -14,6 +14,7 @@ export const CalculatorKey = memo(function CalculatorKey({
   elevation = 3,
   style,
   onPressKey,
+  onPressInKey,
   onPressInHaptic,
   accessibilityLabel,
 }) {
@@ -29,6 +30,9 @@ export const CalculatorKey = memo(function CalculatorKey({
     }
     if (onPressInHaptic) {
       onPressInHaptic();
+    }
+    if (onPressInKey) {
+      onPressInKey(keyId ?? label);
     }
     bgAnim.stopAnimation();
     bgAnim.setValue(1);
