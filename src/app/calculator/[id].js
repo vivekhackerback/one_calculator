@@ -24,13 +24,16 @@ import { BmiCalculatorScreen } from '../../components/calculator/screens/BmiCalc
 import { BmrCalculatorScreen } from '../../components/calculator/screens/BmrCalculatorScreen';
 
 export default function CalculatorScreen() {
-  const { id } = useLocalSearchParams();
+  const { id, restoreExpr, restoreId } = useLocalSearchParams();
   const router = useRouter();
   const { theme } = useTheme();
   const {
+    history,
     isCalculatorFavorite,
     toggleFavoriteCalculator,
     addHistoryEntry,
+    upsertAutoHistoryEntry,
+    toggleStarHistoryEntry,
     markCalculatorUsed,
   } = useAppData();
   const { formatNumber, triggerHaptic } = usePreferences();
@@ -71,9 +74,24 @@ export default function CalculatorScreen() {
     formatNumber,
   };
 
+  const parsedRestoreId =
+    typeof restoreId === 'string' && restoreId ? Number(restoreId) : null;
+  const restoredItem = parsedRestoreId
+    ? history.find((item) => item.id === parsedRestoreId)
+    : null;
+
   switch (calculator.id) {
     case 'basic':
-      return <BasicCalculatorScreen {...sharedProps} />;
+      return (
+        <BasicCalculatorScreen
+          {...sharedProps}
+          restoreExpression={typeof restoreExpr === 'string' ? restoreExpr : ''}
+          restoreHistoryId={parsedRestoreId}
+          initialCalcStarred={Boolean(restoredItem?.is_starred)}
+          onAutoSaveHistory={upsertAutoHistoryEntry}
+          onToggleCalcStar={toggleStarHistoryEntry}
+        />
+      );
     case 'age':
       return <AgeCalculatorScreen {...sharedProps} />;
     case 'percentage':

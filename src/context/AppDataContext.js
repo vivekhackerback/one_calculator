@@ -15,6 +15,8 @@ import {
   getRecentTools,
   recordRecentTool,
   toggleFavorite,
+  toggleHistoryStar,
+  upsertHistoryEntry,
 } from '../db/database';
 
 const AppDataContext = createContext({
@@ -23,6 +25,8 @@ const AppDataContext = createContext({
   recentIds: [],
   isReady: false,
   addHistoryEntry: async () => {},
+  upsertAutoHistoryEntry: async () => null,
+  toggleStarHistoryEntry: async () => {},
   removeHistoryEntry: async () => {},
   clearAllHistory: async () => {},
   toggleFavoriteCalculator: async () => {},
@@ -63,9 +67,43 @@ export function AppDataProvider({ children }) {
   const addHistoryEntry = useCallback(async (entry) => {
     try {
       const inserted = await addHistory(entry);
-      setHistory((prev) => [inserted, ...prev].slice(0, 100));
+      setHistory((prev) => [inserted, ...prev].slice(0, 200));
     } catch {
-      // Ignore DB write error
+      // Preserve in-memory state if DB write fails
+    }
+  }, []);
+
+  const upsertAutoHistoryEntry = useCallback(async (entry) => {
+    try {
+      const saved = await upsertHistoryEntry(entry);
+      setHistory((prev) => {
+        const filtered = prev.filter((item) => item.id !== saved.id);
+        return [saved, ...filtered].slice(0, 200);
+      });
+      return saved;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const toggleStarHistoryEntry = useCallback(async (id, forcedState = null) => {
+    try {
+      const updated = await toggleHistoryStar(id, forcedState);
+      if (!updated) return null;
+      setHistory((prev) =>
+        prev.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                is_starred: updated.is_starred,
+                starred_at: updated.starred_at,
+              }
+            : item
+        )
+      );
+      return updated;
+    } catch {
+      return null;
     }
   }, []);
 
@@ -78,10 +116,12 @@ export function AppDataProvider({ children }) {
     }
   }, []);
 
-  const clearAllHistory = useCallback(async () => {
+  const clearAllHistory = useCallback(async ({ includeStarred = false } = {}) => {
     try {
-      await clearHistory();
-      setHistory([]);
+      await clearHistory({ includeStarred });
+      setHistory((prev) =>
+        includeStarred ? [] : prev.filter((item) => Boolean(item.is_starred))
+      );
     } catch {
       // Ignore
     }
@@ -123,6 +163,8 @@ export function AppDataProvider({ children }) {
       recentIds,
       isReady,
       addHistoryEntry,
+      upsertAutoHistoryEntry,
+      toggleStarHistoryEntry,
       removeHistoryEntry,
       clearAllHistory,
       toggleFavoriteCalculator,
@@ -135,6 +177,8 @@ export function AppDataProvider({ children }) {
       recentIds,
       isReady,
       addHistoryEntry,
+      upsertAutoHistoryEntry,
+      toggleStarHistoryEntry,
       removeHistoryEntry,
       clearAllHistory,
       toggleFavoriteCalculator,

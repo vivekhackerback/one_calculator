@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import {
+  AppState,
   Pressable,
   Share,
   StyleSheet,
@@ -27,16 +28,24 @@ import {
   calculateDynamicFontSize,
   tokenizeExpressionForDisplay,
 } from '../../../utils/calculators/displaySize';
+import { buildBasicHistoryPayload } from '../../../utils/historyHelpers';
+import { getAppStateValue, setAppStateValue } from '../../../db/database';
 import { CalculatorKey } from '../CalculatorKey';
 
 const GAP = 10;
-const HISTORY_DEBOUNCE_MS = 1200;
+const HISTORY_DEBOUNCE_MS = 350;
+const BASIC_SESSION_KEY = 'basic_active_session';
 
 export function BasicCalculatorScreen({
   calculator,
   isFavorite = false,
   onToggleFavorite = null,
   onRecordHistory = null,
+  onAutoSaveHistory = null,
+  onToggleCalcStar = null,
+  restoreExpression = '',
+  restoreHistoryId = null,
+  initialCalcStarred = false,
 }) {
   const { theme, isDark } = useTheme();
   const { triggerHaptic } = usePreferences();
@@ -45,13 +54,21 @@ export function BasicCalculatorScreen({
 
   const [state, dispatch] = useReducer(
     reduceCalculatorState,
-    INITIAL_CALCULATOR_STATE
+    restoreExpression,
+    (expr) =>
+      expr
+        ? reduceCalculatorState(INITIAL_CALCULATOR_STATE, {
+            type: 'RESTORE',
+            expression: expr,
+          })
+        : INITIAL_CALCULATOR_STATE
   );
   const [copied, setCopied] = useState(false);
   const [keypadHeight, setKeypadHeight] = useState(0);
   const [keypadWidth, setKeypadWidth] = useState(0);
   const [displayWidth, setDisplayWidth] = useState(0);
   const [equalsHighlighted, setEqualsHighlighted] = useState(false);
+  const [isCalcStarred, setIsCalcStarred] = useState(Boolean(initialCalcStarred));
 
   const stateRef = useRef(state);
   useEffect(() => {
@@ -63,39 +80,132 @@ export function BasicCalculatorScreen({
     recordHistoryRef.current = onRecordHistory;
   }, [onRecordHistory]);
 
+  const autoSaveHistoryRef = useRef(onAutoSaveHistory);
+  useEffect(() => {
+    autoSaveHistoryRef.current = onAutoSaveHistory;
+  }, [onAutoSaveHistory]);
+
   const calculatorRef = useRef(calculator);
   useEffect(() => {
     calculatorRef.current = calculator;
   }, [calculator]);
 
   const lastSavedKeyRef = useRef('');
+  const activeHistoryIdRef = useRef(null);
+  const restoredExprRef = useRef('');
+  const sessionLoadedRef = useRef(false);
   const historyTimerRef = useRef(null);
 
-  const saveCalculationNow = useCallback((expr, resText) => {
-    if (!expr || !recordHistoryRef.current) return;
-    const dedupKey = `${expr}::${resText}`;
-    if (lastSavedKeyRef.current === dedupKey) return;
-    lastSavedKeyRef.current = dedupKey;
-    recordHistoryRef.current({
-      calculatorId: calculatorRef.current.id,
-      calculatorName: calculatorRef.current.name,
-      inputSummary: formatIndianExpression(expr),
-      resultSummary: formatIndianNumber(resText),
+  const persistSessionSnapshot = useCallback((expr) => {
+    setAppStateValue(BASIC_SESSION_KEY, {
+      expression: expr || '',
+      activeHistoryId: activeHistoryIdRef.current,
+      updatedAt: new Date().toISOString(),
+    }).catch(() => {
+      // Preserve in-memory input if storage write fails
     });
   }, []);
 
-  // Automatic debounced history saving for live meaningful calculations
+  const saveCalculationNow = useCallback(async (expr, { isStarred = 0 } = {}) => {
+    const payload = buildBasicHistoryPayload(expr);
+    if (!payload) return null;
+
+    // Do not duplicate an unchanged reopened history entry
+    if (
+      restoredExprRef.current &&
+      expr === restoredExprRef.current &&
+      !activeHistoryIdRef.current
+    ) {
+      return null;
+    }
+
+    const dedupKey = `${activeHistoryIdRef.current || 'new'}::${payload.expression}::${payload.resultSummary}::${payload.status}`;
+    if (lastSavedKeyRef.current === dedupKey && !isStarred) return null;
+    lastSavedKeyRef.current = dedupKey;
+
+    if (autoSaveHistoryRef.current) {
+      const saved = await autoSaveHistoryRef.current({
+        id: activeHistoryIdRef.current,
+        calculatorId: calculatorRef.current.id,
+        calculatorName: calculatorRef.current.name,
+        inputSummary: payload.inputSummary,
+        resultSummary: payload.resultSummary,
+        expression: payload.expression,
+        rawResult: payload.rawResult,
+        status: payload.status,
+        isStarred,
+      });
+      if (saved?.id) {
+        activeHistoryIdRef.current = saved.id;
+      }
+      return saved;
+    }
+
+    if (recordHistoryRef.current) {
+      recordHistoryRef.current({
+        calculatorId: calculatorRef.current.id,
+        calculatorName: calculatorRef.current.name,
+        inputSummary: payload.inputSummary,
+        resultSummary: payload.resultSummary,
+        expression: payload.expression,
+        rawResult: payload.rawResult,
+        status: payload.status,
+        isStarred,
+      });
+    }
+    return null;
+  }, []);
+
+  // Restore either a reopened history entry or the last active SQLite draft session
   useEffect(() => {
+    let active = true;
+    if (restoreExpression) {
+      restoredExprRef.current = restoreExpression;
+      activeHistoryIdRef.current = null;
+      lastSavedKeyRef.current = '';
+      sessionLoadedRef.current = true;
+      dispatch({ type: 'RESTORE', expression: restoreExpression });
+      return () => {
+        active = false;
+      };
+    }
+
+    (async () => {
+      try {
+        const savedSession = await getAppStateValue(BASIC_SESSION_KEY);
+        if (active && savedSession?.expression) {
+          activeHistoryIdRef.current = savedSession.activeHistoryId || null;
+          dispatch({ type: 'RESTORE', expression: savedSession.expression });
+        }
+      } catch {
+        // Ignore restore errors
+      } finally {
+        if (active) {
+          sessionLoadedRef.current = true;
+        }
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [restoreExpression]);
+
+  // Automatic debounced SQLite auto-save for every meaningful input or draft
+  useEffect(() => {
+    if (!sessionLoadedRef.current) return;
+
     if (historyTimerRef.current) {
       clearTimeout(historyTimerRef.current);
       historyTimerRef.current = null;
     }
 
-    if (state.hasMeaningfulResult && !state.error && state.expression) {
+    persistSessionSnapshot(state.expression);
+
+    if (state.expression) {
       const exprSnapshot = state.expression;
-      const resSnapshot = state.resultText;
       historyTimerRef.current = setTimeout(() => {
-        saveCalculationNow(exprSnapshot, resSnapshot);
+        saveCalculationNow(exprSnapshot);
         historyTimerRef.current = null;
       }, HISTORY_DEBOUNCE_MS);
     }
@@ -106,23 +216,33 @@ export function BasicCalculatorScreen({
         historyTimerRef.current = null;
       }
     };
-  }, [
-    state.expression,
-    state.resultText,
-    state.hasMeaningfulResult,
-    state.error,
-    saveCalculationNow,
-  ]);
+  }, [state.expression, saveCalculationNow, persistSessionSnapshot]);
 
-  // Flush any unsaved meaningful calculation when leaving the screen
+  // Flush pending entry immediately when app moves to background or screen unmounts
   useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'background' || nextState === 'inactive') {
+        if (historyTimerRef.current) {
+          clearTimeout(historyTimerRef.current);
+          historyTimerRef.current = null;
+        }
+        const latest = stateRef.current;
+        persistSessionSnapshot(latest.expression);
+        if (latest.expression) {
+          saveCalculationNow(latest.expression);
+        }
+      }
+    });
+
     return () => {
+      subscription.remove();
       const latest = stateRef.current;
-      if (latest.hasMeaningfulResult && !latest.error && latest.expression) {
-        saveCalculationNow(latest.expression, latest.resultText);
+      persistSessionSnapshot(latest.expression);
+      if (latest.expression) {
+        saveCalculationNow(latest.expression);
       }
     };
-  }, [saveCalculationNow]);
+  }, [saveCalculationNow, persistSessionSnapshot]);
 
   const handleEqualsPressIn = useCallback(() => {
     if (stateRef.current.expression) {
@@ -132,6 +252,21 @@ export function BasicCalculatorScreen({
 
   const pressKey = useCallback(
     (key) => {
+      if (key === 'AC' || key === 'C') {
+        if (historyTimerRef.current) {
+          clearTimeout(historyTimerRef.current);
+          historyTimerRef.current = null;
+        }
+        activeHistoryIdRef.current = null;
+        restoredExprRef.current = '';
+        lastSavedKeyRef.current = '';
+        setEqualsHighlighted(false);
+        setIsCalcStarred(false);
+        persistSessionSnapshot('');
+        dispatch(key);
+        return;
+      }
+
       if (key === '=') {
         if (historyTimerRef.current) {
           clearTimeout(historyTimerRef.current);
@@ -143,10 +278,9 @@ export function BasicCalculatorScreen({
           if (evaluated.ok) {
             setEqualsHighlighted(true);
             const exprSnapshot = current.expression;
-            const formattedSnapshot = evaluated.formatted;
             // Save history asynchronously so SQLite/context updates never delay UI feedback
             setTimeout(() => {
-              saveCalculationNow(exprSnapshot, formattedSnapshot);
+              saveCalculationNow(exprSnapshot);
             }, 0);
           } else {
             setEqualsHighlighted(false);
@@ -154,10 +288,21 @@ export function BasicCalculatorScreen({
         }
       } else {
         setEqualsHighlighted(false);
+        // If user starts a fresh expression after pressing '=', create a new history record
+        if (stateRef.current.justEvaluated && !['+', '−', '×', '÷', '%'].includes(key)) {
+          activeHistoryIdRef.current = null;
+          lastSavedKeyRef.current = '';
+          setIsCalcStarred(false);
+        }
+        // If user edits a reopened entry, preserve original and save as a new record
+        if (restoredExprRef.current) {
+          restoredExprRef.current = '';
+          setIsCalcStarred(false);
+        }
       }
       dispatch(key);
     },
-    [saveCalculationNow]
+    [saveCalculationNow, persistSessionSnapshot]
   );
 
   const hapticNumber = useCallback(() => triggerHaptic('number'), [triggerHaptic]);
@@ -181,6 +326,37 @@ export function BasicCalculatorScreen({
     () => numberToIndianWords(state.resultText),
     [state.resultText]
   );
+
+  const handleToggleCalculationStar = useCallback(async () => {
+    const expr = stateRef.current.expression;
+    if (!expr) return;
+
+    triggerHaptic('selection');
+    const nextStarred = !isCalcStarred;
+    setIsCalcStarred(nextStarred);
+
+    const existingId =
+      activeHistoryIdRef.current ||
+      (restoredExprRef.current === expr ? restoreHistoryId : null);
+
+    if (existingId && onToggleCalcStar) {
+      await onToggleCalcStar(existingId, nextStarred);
+      return;
+    }
+
+    const saved = await saveCalculationNow(expr, {
+      isStarred: nextStarred ? 1 : 0,
+    });
+    if (saved?.id && onToggleCalcStar) {
+      await onToggleCalcStar(saved.id, nextStarred);
+    }
+  }, [
+    isCalcStarred,
+    restoreHistoryId,
+    onToggleCalcStar,
+    saveCalculationNow,
+    triggerHaptic,
+  ]);
 
   const handleCopy = useCallback(async () => {
     try {
@@ -391,6 +567,36 @@ export function BasicCalculatorScreen({
                 ]}
               >
                 Share
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={handleToggleCalculationStar}
+              disabled={!state.expression}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={
+                isCalcStarred ? 'Unstar calculation' : 'Star calculation'
+              }
+              style={[
+                styles.miniAction,
+                { opacity: state.expression ? 1 : 0.4 },
+              ]}
+            >
+              <Star
+                size={15}
+                color={isCalcStarred ? '#F59E0B' : theme.colors.textMuted}
+                fill={isCalcStarred ? '#F59E0B' : 'transparent'}
+              />
+              <Text
+                style={[
+                  theme.typography.small,
+                  {
+                    color: isCalcStarred ? '#F59E0B' : theme.colors.textMuted,
+                    marginLeft: 4,
+                  },
+                ]}
+              >
+                {isCalcStarred ? 'Starred' : 'Star'}
               </Text>
             </Pressable>
           </View>

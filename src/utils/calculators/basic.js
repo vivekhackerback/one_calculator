@@ -223,6 +223,19 @@ export function evaluateLiveExpression(expression) {
  * Safe for rapid consecutive taps with zero stale-closure issues.
  */
 export function reduceCalculatorState(state, key) {
+  if (key && typeof key === 'object' && key.type === 'RESTORE') {
+    const expr = typeof key.expression === 'string' ? key.expression.trim() : '';
+    if (!expr) return INITIAL_CALCULATOR_STATE;
+    const live = evaluateLiveExpression(expr);
+    return {
+      expression: expr,
+      resultText: live.ok ? live.formatted : '0',
+      error: live.ok ? '' : live.error || '',
+      justEvaluated: false,
+      hasMeaningfulResult: Boolean(live.ok && live.isComplete && live.hasOperator),
+    };
+  }
+
   if (key === 'AC' || key === 'C') {
     return INITIAL_CALCULATOR_STATE;
   }

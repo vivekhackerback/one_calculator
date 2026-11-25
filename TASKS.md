@@ -2,11 +2,11 @@
 
 ## Progress Summary
 
-- **Total Tasks:** 36
-- **Completed Tasks:** 36
+- **Total Tasks:** 38
+- **Completed Tasks:** 38
 - **Pending Tasks:** 0
 - **Current Task:** None (All tasks completed)
-- **Latest Test Results:** 5x4 Keypad Layout with Normal Equals & Tall Plus: `npm test` (62/62 passed), `npx expo lint` (0 errors), `npx expo export --platform android`.
+- **Latest Test Results:** Calculation History Redesign, Safe Clear & Direct Calculator Star: `npm test` (66/66 passed), `npx expo lint` (0 errors), `npx expo export --platform android`.
 - **Known Issues:** Physical Android device verification pending (no Android device connected via `adb` in this environment).
 - **Next Task:** Verify on physical Android device (`npx expo start --android` or `eas build --platform android`).
 
@@ -434,12 +434,44 @@
   - `npm test` (62/62 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
 - **Completion Status:** COMPLETED
 
+- [x] **Task ID:** T12.9
+- **Task Name:** Auto-Save Every Calculation & Starred Calculations
+- **Description:** Migrate SQLite `history` table safely with `expression`, `raw_result`, `status`, `is_starred`, `updated_at`, `starred_at`, indexes, and `app_state` session persistence; auto-save every Basic Calculator entry and draft (debounced 350ms + immediate flush on `=`, `AppState` background/inactive, and unmount); add Star toggle, Starred Calculations filter, Draft/Completed badges, reopen-without-duplicate, and protected Clear All in `history.js`.
+- **Dependencies:** T12.8
+- **Testing Requirements:**
+  - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device restart verification required.
+- **Completion Status:** COMPLETED
+
+- [x] **Task ID:** T12.10
+- **Task Name:** Calculation History UI/UX Redesign, Safe Clear & Direct Calculator Star
+- **Description:** Redesign `history.js` with `FlatList`, modern header (total + starred counts), `All (N)` / `Starred (N)` filters, compact cards with contextual action menu, two-step protected Clear History (non-starred vs explicit all-delete) using SQLite transactions, and direct Star/Unstar toggle in `BasicCalculatorScreen.js` preserving reopened starred state.
+- **Dependencies:** T12.9
+- **Testing Requirements:**
+  - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
+- **Completion Status:** COMPLETED
+
 - [x] **Task ID:** T12.8
 - **Task Name:** UI Improvement — Normal Equals Button & 5x4 Keypad Layout with Tall Plus
 - **Description:** Convert keypad to a balanced 5x4 grid (`AC BACK % ÷`, `7 8 9 ×`, `4 5 6 −`, `1 2 3` + tall `+`, `0 . =` + tall `+`) with pixel-aligned 4-column widths, normal 1x1 Equals button, and 2-row-tall Plus button.
 - **Dependencies:** T12.7
 - **Testing Requirements:**
   - `npm test` (62/62 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
+- **Completion Status:** COMPLETED
+
+- [x] **Task ID:** T12.9
+- **Task Name:** Auto-Save Every Calculation & Starred Calculations
+- **Description:** Migrate SQLite `history` table safely with `expression`, `raw_result`, `status`, `is_starred`, `updated_at`, `starred_at`, indexes, and `app_state` session persistence; auto-save every Basic Calculator entry and draft (debounced 350ms + immediate flush on `=`, `AppState` background/inactive, and unmount); add Star toggle, Starred Calculations filter, Draft/Completed badges, reopen-without-duplicate, and protected Clear All in `history.js`.
+- **Dependencies:** T12.8
+- **Testing Requirements:**
+  - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device restart verification required.
+- **Completion Status:** COMPLETED
+
+- [x] **Task ID:** T12.10
+- **Task Name:** Calculation History UI/UX Redesign, Safe Clear & Direct Calculator Star
+- **Description:** Redesign `history.js` with `FlatList`, modern header (total + starred counts), `All (N)` / `Starred (N)` filters, compact cards with contextual action menu, two-step protected Clear History (non-starred vs explicit all-delete) using SQLite transactions, and direct Star/Unstar toggle in `BasicCalculatorScreen.js` preserving reopened starred state.
+- **Dependencies:** T12.9
+- **Testing Requirements:**
+  - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
 - **Completion Status:** COMPLETED
 
 - [x] **Task ID:** T12.7
@@ -450,10 +482,42 @@
   - `npm test` (62/62 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
 - **Completion Status:** COMPLETED
 
+- [x] **Task ID:** T12.9
+- **Task Name:** Auto-Save Every Calculation & Starred Calculations
+- **Description:** Migrate SQLite `history` table safely with `expression`, `raw_result`, `status`, `is_starred`, `updated_at`, `starred_at`, indexes, and `app_state` session persistence; auto-save every Basic Calculator entry and draft (debounced 350ms + immediate flush on `=`, `AppState` background/inactive, and unmount); add Star toggle, Starred Calculations filter, Draft/Completed badges, reopen-without-duplicate, and protected Clear All in `history.js`.
+- **Dependencies:** T12.8
+- **Testing Requirements:**
+  - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device restart verification required.
+- **Completion Status:** COMPLETED
+
+- [x] **Task ID:** T12.10
+- **Task Name:** Calculation History UI/UX Redesign, Safe Clear & Direct Calculator Star
+- **Description:** Redesign `history.js` with `FlatList`, modern header (total + starred counts), `All (N)` / `Starred (N)` filters, compact cards with contextual action menu, two-step protected Clear History (non-starred vs explicit all-delete) using SQLite transactions, and direct Star/Unstar toggle in `BasicCalculatorScreen.js` preserving reopened starred state.
+- **Dependencies:** T12.9
+- **Testing Requirements:**
+  - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
+- **Completion Status:** COMPLETED
+
 - [x] **Task ID:** T12.8
 - **Task Name:** UI Improvement — Normal Equals Button & 5x4 Keypad Layout with Tall Plus
 - **Description:** Convert keypad to a balanced 5x4 grid (`AC BACK % ÷`, `7 8 9 ×`, `4 5 6 −`, `1 2 3` + tall `+`, `0 . =` + tall `+`) with pixel-aligned 4-column widths, normal 1x1 Equals button, and 2-row-tall Plus button.
 - **Dependencies:** T12.7
 - **Testing Requirements:**
   - `npm test` (62/62 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
+- **Completion Status:** COMPLETED
+
+- [x] **Task ID:** T12.9
+- **Task Name:** Auto-Save Every Calculation & Starred Calculations
+- **Description:** Migrate SQLite `history` table safely with `expression`, `raw_result`, `status`, `is_starred`, `updated_at`, `starred_at`, indexes, and `app_state` session persistence; auto-save every Basic Calculator entry and draft (debounced 350ms + immediate flush on `=`, `AppState` background/inactive, and unmount); add Star toggle, Starred Calculations filter, Draft/Completed badges, reopen-without-duplicate, and protected Clear All in `history.js`.
+- **Dependencies:** T12.8
+- **Testing Requirements:**
+  - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device restart verification required.
+- **Completion Status:** COMPLETED
+
+- [x] **Task ID:** T12.10
+- **Task Name:** Calculation History UI/UX Redesign, Safe Clear & Direct Calculator Star
+- **Description:** Redesign `history.js` with `FlatList`, modern header (total + starred counts), `All (N)` / `Starred (N)` filters, compact cards with contextual action menu, two-step protected Clear History (non-starred vs explicit all-delete) using SQLite transactions, and direct Star/Unstar toggle in `BasicCalculatorScreen.js` preserving reopened starred state.
+- **Dependencies:** T12.9
+- **Testing Requirements:**
+  - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
 - **Completion Status:** COMPLETED
