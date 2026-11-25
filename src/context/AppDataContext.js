@@ -10,6 +10,7 @@ import {
   addHistory,
   clearHistory,
   deleteHistoryItem,
+  deleteUnstarredDraftById,
   getFavorites,
   getHistory,
   getRecentTools,
@@ -26,6 +27,7 @@ const AppDataContext = createContext({
   isReady: false,
   addHistoryEntry: async () => {},
   upsertAutoHistoryEntry: async () => null,
+  discardDraftHistoryEntry: async () => {},
   toggleStarHistoryEntry: async () => {},
   removeHistoryEntry: async () => {},
   clearAllHistory: async () => {},
@@ -116,6 +118,18 @@ export function AppDataProvider({ children }) {
     }
   }, []);
 
+  const discardDraftHistoryEntry = useCallback(async (id) => {
+    if (!id) return;
+    try {
+      const deleted = await deleteUnstarredDraftById(id);
+      if (deleted) {
+        setHistory((prev) => prev.filter((item) => item.id !== id));
+      }
+    } catch {
+      // Ignore
+    }
+  }, []);
+
   const clearAllHistory = useCallback(async ({ includeStarred = false } = {}) => {
     try {
       await clearHistory({ includeStarred });
@@ -164,6 +178,7 @@ export function AppDataProvider({ children }) {
       isReady,
       addHistoryEntry,
       upsertAutoHistoryEntry,
+      discardDraftHistoryEntry,
       toggleStarHistoryEntry,
       removeHistoryEntry,
       clearAllHistory,
@@ -178,6 +193,7 @@ export function AppDataProvider({ children }) {
       isReady,
       addHistoryEntry,
       upsertAutoHistoryEntry,
+      discardDraftHistoryEntry,
       toggleStarHistoryEntry,
       removeHistoryEntry,
       clearAllHistory,

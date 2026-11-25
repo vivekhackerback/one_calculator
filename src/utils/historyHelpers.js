@@ -2,15 +2,15 @@ import { evaluateExpression } from './calculators/basic.js';
 import { formatIndianExpression, formatIndianNumber } from './indianFormat.js';
 
 const TRAILING_OP_REGEX = /[+\−×÷*/-]$/;
-const HAS_OPERATOR_REGEX = /[+\−×÷*/%]/;
 
 /**
  * Classify a Basic Calculator expression into a persistent history payload.
  * Returns null when the expression is empty.
- * Incomplete expressions (e.g. "500+") are saved as 'draft' with empty result
- * so no fake result is ever invented.
+ * - finalized = false -> always 'draft' (unfinished calculation, restorable)
+ * - finalized = true (Equals pressed) -> 'completed' when evaluation succeeds
+ * Incomplete expressions (e.g. "500+") are saved as 'draft' with empty result.
  */
-export function buildBasicHistoryPayload(expression) {
+export function buildBasicHistoryPayload(expression, { finalized = false } = {}) {
   if (typeof expression !== 'string' || !expression.trim()) {
     return null;
   }
@@ -30,7 +30,6 @@ export function buildBasicHistoryPayload(expression) {
   }
 
   const evaluated = evaluateExpression(trimmed);
-  const hasOperator = HAS_OPERATOR_REGEX.test(trimmed);
 
   if (!evaluated.ok) {
     return {
@@ -47,7 +46,7 @@ export function buildBasicHistoryPayload(expression) {
     inputSummary: formattedExpression,
     rawResult: evaluated.formatted,
     resultSummary: formatIndianNumber(evaluated.formatted),
-    status: hasOperator ? 'completed' : 'draft',
+    status: finalized ? 'completed' : 'draft',
   };
 }
 

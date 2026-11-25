@@ -33,6 +33,7 @@ export default function CalculatorScreen() {
     toggleFavoriteCalculator,
     addHistoryEntry,
     upsertAutoHistoryEntry,
+    discardDraftHistoryEntry,
     toggleStarHistoryEntry,
     markCalculatorUsed,
   } = useAppData();
@@ -89,6 +90,7 @@ export default function CalculatorScreen() {
           restoreHistoryId={parsedRestoreId}
           initialCalcStarred={Boolean(restoredItem?.is_starred)}
           onAutoSaveHistory={upsertAutoHistoryEntry}
+          onDiscardDraft={discardDraftHistoryEntry}
           onToggleCalcStar={toggleStarHistoryEntry}
         />
       );

@@ -1,3 +1,4 @@
+import { View } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -9,7 +10,7 @@ function RootNavigator() {
   const { theme, isDark } = useTheme();
 
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
@@ -27,10 +28,11 @@ function RootNavigator() {
             headerShown: true,
             title: 'Calculator',
             animation: 'slide_from_right',
+            contentStyle: { backgroundColor: theme.colors.background },
           }}
         />
       </Stack>
-    </>
+    </View>
   );
 }
 

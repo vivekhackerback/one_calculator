@@ -42,6 +42,7 @@ export function BasicCalculatorScreen({
   onToggleFavorite = null,
   onRecordHistory = null,
   onAutoSaveHistory = null,
+  onDiscardDraft = null,
   onToggleCalcStar = null,
   restoreExpression = '',
   restoreHistoryId = null,
@@ -94,69 +95,84 @@ export function BasicCalculatorScreen({
   const activeHistoryIdRef = useRef(null);
   const restoredExprRef = useRef('');
   const sessionLoadedRef = useRef(false);
+  const userInteractedRef = useRef(false);
   const historyTimerRef = useRef(null);
 
-  const persistSessionSnapshot = useCallback((expr) => {
-    setAppStateValue(BASIC_SESSION_KEY, {
-      expression: expr || '',
-      activeHistoryId: activeHistoryIdRef.current,
-      updatedAt: new Date().toISOString(),
-    }).catch(() => {
+  const persistSessionSnapshot = useCallback((expr, status = 'draft') => {
+    const payload =
+      status === 'draft' && expr
+        ? {
+            expression: expr,
+            activeHistoryId: activeHistoryIdRef.current,
+            status: 'draft',
+            updatedAt: new Date().toISOString(),
+          }
+        : {
+            expression: '',
+            activeHistoryId: null,
+            status: 'cleared',
+            updatedAt: new Date().toISOString(),
+          };
+    setAppStateValue(BASIC_SESSION_KEY, payload).catch(() => {
       // Preserve in-memory input if storage write fails
     });
   }, []);
 
-  const saveCalculationNow = useCallback(async (expr, { isStarred = 0 } = {}) => {
-    const payload = buildBasicHistoryPayload(expr);
-    if (!payload) return null;
+  const saveCalculationNow = useCallback(
+    async (expr, { isStarred = 0, finalized = false } = {}) => {
+      const payload = buildBasicHistoryPayload(expr, { finalized });
+      if (!payload) return null;
 
-    // Do not duplicate an unchanged reopened history entry
-    if (
-      restoredExprRef.current &&
-      expr === restoredExprRef.current &&
-      !activeHistoryIdRef.current
-    ) {
-      return null;
-    }
-
-    const dedupKey = `${activeHistoryIdRef.current || 'new'}::${payload.expression}::${payload.resultSummary}::${payload.status}`;
-    if (lastSavedKeyRef.current === dedupKey && !isStarred) return null;
-    lastSavedKeyRef.current = dedupKey;
-
-    if (autoSaveHistoryRef.current) {
-      const saved = await autoSaveHistoryRef.current({
-        id: activeHistoryIdRef.current,
-        calculatorId: calculatorRef.current.id,
-        calculatorName: calculatorRef.current.name,
-        inputSummary: payload.inputSummary,
-        resultSummary: payload.resultSummary,
-        expression: payload.expression,
-        rawResult: payload.rawResult,
-        status: payload.status,
-        isStarred,
-      });
-      if (saved?.id) {
-        activeHistoryIdRef.current = saved.id;
+      // Do not duplicate an unchanged reopened history entry unless starring
+      if (
+        restoredExprRef.current &&
+        expr === restoredExprRef.current &&
+        !activeHistoryIdRef.current &&
+        !isStarred
+      ) {
+        return null;
       }
-      return saved;
-    }
 
-    if (recordHistoryRef.current) {
-      recordHistoryRef.current({
-        calculatorId: calculatorRef.current.id,
-        calculatorName: calculatorRef.current.name,
-        inputSummary: payload.inputSummary,
-        resultSummary: payload.resultSummary,
-        expression: payload.expression,
-        rawResult: payload.rawResult,
-        status: payload.status,
-        isStarred,
-      });
-    }
-    return null;
-  }, []);
+      const dedupKey = `${activeHistoryIdRef.current || 'new'}::${payload.expression}::${payload.resultSummary}::${payload.status}`;
+      if (lastSavedKeyRef.current === dedupKey && !isStarred) return null;
+      lastSavedKeyRef.current = dedupKey;
 
-  // Restore either a reopened history entry or the last active SQLite draft session
+      if (autoSaveHistoryRef.current) {
+        const saved = await autoSaveHistoryRef.current({
+          id: activeHistoryIdRef.current,
+          calculatorId: calculatorRef.current.id,
+          calculatorName: calculatorRef.current.name,
+          inputSummary: payload.inputSummary,
+          resultSummary: payload.resultSummary,
+          expression: payload.expression,
+          rawResult: payload.rawResult,
+          status: payload.status,
+          isStarred,
+        });
+        if (saved?.id) {
+          activeHistoryIdRef.current = saved.id;
+        }
+        return saved;
+      }
+
+      if (recordHistoryRef.current) {
+        recordHistoryRef.current({
+          calculatorId: calculatorRef.current.id,
+          calculatorName: calculatorRef.current.name,
+          inputSummary: payload.inputSummary,
+          resultSummary: payload.resultSummary,
+          expression: payload.expression,
+          rawResult: payload.rawResult,
+          status: payload.status,
+          isStarred,
+        });
+      }
+      return null;
+    },
+    []
+  );
+
+  // Restore either a reopened history entry or the latest unfinished draft only
   useEffect(() => {
     let active = true;
     if (restoreExpression) {
@@ -173,7 +189,12 @@ export function BasicCalculatorScreen({
     (async () => {
       try {
         const savedSession = await getAppStateValue(BASIC_SESSION_KEY);
-        if (active && savedSession?.expression) {
+        if (
+          active &&
+          !userInteractedRef.current &&
+          savedSession?.status === 'draft' &&
+          savedSession?.expression
+        ) {
           activeHistoryIdRef.current = savedSession.activeHistoryId || null;
           dispatch({ type: 'RESTORE', expression: savedSession.expression });
         }
@@ -191,7 +212,7 @@ export function BasicCalculatorScreen({
     };
   }, [restoreExpression]);
 
-  // Automatic debounced SQLite auto-save for every meaningful input or draft
+  // Automatic debounced SQLite auto-save for unfinished drafts
   useEffect(() => {
     if (!sessionLoadedRef.current) return;
 
@@ -200,12 +221,18 @@ export function BasicCalculatorScreen({
       historyTimerRef.current = null;
     }
 
-    persistSessionSnapshot(state.expression);
+    // Never persist a completed calculation as an active draft session
+    if (state.justEvaluated) {
+      persistSessionSnapshot('', 'completed');
+      return;
+    }
+
+    persistSessionSnapshot(state.expression, 'draft');
 
     if (state.expression) {
       const exprSnapshot = state.expression;
       historyTimerRef.current = setTimeout(() => {
-        saveCalculationNow(exprSnapshot);
+        saveCalculationNow(exprSnapshot, { finalized: false });
         historyTimerRef.current = null;
       }, HISTORY_DEBOUNCE_MS);
     }
@@ -216,35 +243,43 @@ export function BasicCalculatorScreen({
         historyTimerRef.current = null;
       }
     };
-  }, [state.expression, saveCalculationNow, persistSessionSnapshot]);
+  }, [
+    state.expression,
+    state.justEvaluated,
+    saveCalculationNow,
+    persistSessionSnapshot,
+  ]);
 
-  // Flush pending entry immediately when app moves to background or screen unmounts
+  // Flush pending draft immediately when app moves to background or screen unmounts
   useEffect(() => {
+    const flushDraft = () => {
+      const latest = stateRef.current;
+      if (latest.justEvaluated || !latest.expression) {
+        persistSessionSnapshot('', 'completed');
+        return;
+      }
+      persistSessionSnapshot(latest.expression, 'draft');
+      saveCalculationNow(latest.expression, { finalized: false });
+    };
+
     const subscription = AppState.addEventListener('change', (nextState) => {
       if (nextState === 'background' || nextState === 'inactive') {
         if (historyTimerRef.current) {
           clearTimeout(historyTimerRef.current);
           historyTimerRef.current = null;
         }
-        const latest = stateRef.current;
-        persistSessionSnapshot(latest.expression);
-        if (latest.expression) {
-          saveCalculationNow(latest.expression);
-        }
+        flushDraft();
       }
     });
 
     return () => {
       subscription.remove();
-      const latest = stateRef.current;
-      persistSessionSnapshot(latest.expression);
-      if (latest.expression) {
-        saveCalculationNow(latest.expression);
-      }
+      flushDraft();
     };
   }, [saveCalculationNow, persistSessionSnapshot]);
 
   const handleEqualsPressIn = useCallback(() => {
+    userInteractedRef.current = true;
     if (stateRef.current.expression) {
       setEqualsHighlighted(true);
     }
@@ -252,17 +287,23 @@ export function BasicCalculatorScreen({
 
   const pressKey = useCallback(
     (key) => {
+      userInteractedRef.current = true;
+
       if (key === 'AC' || key === 'C') {
         if (historyTimerRef.current) {
           clearTimeout(historyTimerRef.current);
           historyTimerRef.current = null;
         }
+        const draftIdToClear = activeHistoryIdRef.current;
         activeHistoryIdRef.current = null;
         restoredExprRef.current = '';
         lastSavedKeyRef.current = '';
         setEqualsHighlighted(false);
         setIsCalcStarred(false);
-        persistSessionSnapshot('');
+        persistSessionSnapshot('', 'cleared');
+        if (draftIdToClear && onDiscardDraft) {
+          onDiscardDraft(draftIdToClear);
+        }
         dispatch(key);
         return;
       }
@@ -278,9 +319,10 @@ export function BasicCalculatorScreen({
           if (evaluated.ok) {
             setEqualsHighlighted(true);
             const exprSnapshot = current.expression;
-            // Save history asynchronously so SQLite/context updates never delay UI feedback
+            persistSessionSnapshot('', 'completed');
+            // Save completed calculation asynchronously so SQLite never delays UI feedback
             setTimeout(() => {
-              saveCalculationNow(exprSnapshot);
+              saveCalculationNow(exprSnapshot, { finalized: true });
             }, 0);
           } else {
             setEqualsHighlighted(false);
@@ -288,8 +330,8 @@ export function BasicCalculatorScreen({
         }
       } else {
         setEqualsHighlighted(false);
-        // If user starts a fresh expression after pressing '=', create a new history record
-        if (stateRef.current.justEvaluated && !['+', '−', '×', '÷', '%'].includes(key)) {
+        // If user starts a fresh expression after pressing '=', create a new draft record
+        if (stateRef.current.justEvaluated) {
           activeHistoryIdRef.current = null;
           lastSavedKeyRef.current = '';
           setIsCalcStarred(false);
@@ -302,7 +344,7 @@ export function BasicCalculatorScreen({
       }
       dispatch(key);
     },
-    [saveCalculationNow, persistSessionSnapshot]
+    [saveCalculationNow, persistSessionSnapshot, onDiscardDraft]
   );
 
   const hapticNumber = useCallback(() => triggerHaptic('number'), [triggerHaptic]);

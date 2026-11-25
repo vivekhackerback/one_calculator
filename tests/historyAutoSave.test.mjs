@@ -26,17 +26,23 @@ test('buildBasicHistoryPayload saves single numbers and incomplete expressions a
   assert.equal(incomplete.resultSummary, '');
 });
 
-test('buildBasicHistoryPayload saves complete live expressions with Indian formatting as completed', () => {
-  const sum = buildBasicHistoryPayload('1250+250');
-  assert.equal(sum.status, 'completed');
-  assert.equal(sum.inputSummary, '1,250 + 250');
-  assert.equal(sum.rawResult, '1500');
-  assert.equal(sum.resultSummary, '1,500');
+test('buildBasicHistoryPayload saves unfinished expressions as drafts and finalized equals as completed', () => {
+  const draftSum = buildBasicHistoryPayload('1250+250');
+  assert.equal(draftSum.status, 'draft');
+  assert.equal(draftSum.inputSummary, '1,250 + 250');
+  assert.equal(draftSum.rawResult, '1500');
+  assert.equal(draftSum.resultSummary, '1,500');
 
-  const mul = buildBasicHistoryPayload('500×25');
-  assert.equal(mul.status, 'completed');
-  assert.equal(mul.rawResult, '12500');
-  assert.equal(mul.resultSummary, '12,500');
+  const completedSum = buildBasicHistoryPayload('1250+250', { finalized: true });
+  assert.equal(completedSum.status, 'completed');
+  assert.equal(completedSum.inputSummary, '1,250 + 250');
+  assert.equal(completedSum.rawResult, '1500');
+  assert.equal(completedSum.resultSummary, '1,500');
+
+  const completedMul = buildBasicHistoryPayload('500×25', { finalized: true });
+  assert.equal(completedMul.status, 'completed');
+  assert.equal(completedMul.rawResult, '12500');
+  assert.equal(completedMul.resultSummary, '12,500');
 });
 
 test('reduceCalculatorState RESTORE restores expression and live result cleanly', () => {

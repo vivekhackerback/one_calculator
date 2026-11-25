@@ -2,11 +2,11 @@
 
 ## Progress Summary
 
-- **Total Tasks:** 38
-- **Completed Tasks:** 38
+- **Total Tasks:** 39
+- **Completed Tasks:** 39
 - **Pending Tasks:** 0
 - **Current Task:** None (All tasks completed)
-- **Latest Test Results:** Calculation History Redesign, Safe Clear & Direct Calculator Star: `npm test` (66/66 passed), `npx expo lint` (0 errors), `npx expo export --platform android`.
+- **Latest Test Results:** Navigation Theme Background & Draft-Only Calculator Restoration: `npm test` (66/66 passed), `npx expo lint` (0 errors), `npx expo export --platform android`.
 - **Known Issues:** Physical Android device verification pending (no Android device connected via `adb` in this environment).
 - **Next Task:** Verify on physical Android device (`npx expo start --android` or `eas build --platform android`).
 
@@ -450,6 +450,14 @@
   - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
 - **Completion Status:** COMPLETED
 
+- [x] **Task ID:** T12.11
+- **Task Name:** Fix White Screen on Back Navigation & Draft-Only Calculator Restoration
+- **Description:** Wrap `RootNavigator` in `@react-navigation/native` `ThemeProvider` + themed root `View` and set `Tabs` `sceneStyle` background to eliminate white flashes on back navigation; restrict `basic_active_session` restoration strictly to `'draft'` entries, clear active session on `=` (`completed`), and clean up unstarred active drafts on `AC` without touching completed/starred history.
+- **Dependencies:** T12.10
+- **Testing Requirements:**
+  - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
+- **Completion Status:** COMPLETED
+
 - [x] **Task ID:** T12.8
 - **Task Name:** UI Improvement — Normal Equals Button & 5x4 Keypad Layout with Tall Plus
 - **Description:** Convert keypad to a balanced 5x4 grid (`AC BACK % ÷`, `7 8 9 ×`, `4 5 6 −`, `1 2 3` + tall `+`, `0 . =` + tall `+`) with pixel-aligned 4-column widths, normal 1x1 Equals button, and 2-row-tall Plus button.
@@ -470,6 +478,14 @@
 - **Task Name:** Calculation History UI/UX Redesign, Safe Clear & Direct Calculator Star
 - **Description:** Redesign `history.js` with `FlatList`, modern header (total + starred counts), `All (N)` / `Starred (N)` filters, compact cards with contextual action menu, two-step protected Clear History (non-starred vs explicit all-delete) using SQLite transactions, and direct Star/Unstar toggle in `BasicCalculatorScreen.js` preserving reopened starred state.
 - **Dependencies:** T12.9
+- **Testing Requirements:**
+  - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
+- **Completion Status:** COMPLETED
+
+- [x] **Task ID:** T12.11
+- **Task Name:** Fix White Screen on Back Navigation & Draft-Only Calculator Restoration
+- **Description:** Wrap `RootNavigator` in `@react-navigation/native` `ThemeProvider` + themed root `View` and set `Tabs` `sceneStyle` background to eliminate white flashes on back navigation; restrict `basic_active_session` restoration strictly to `'draft'` entries, clear active session on `=` (`completed`), and clean up unstarred active drafts on `AC` without touching completed/starred history.
+- **Dependencies:** T12.10
 - **Testing Requirements:**
   - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
 - **Completion Status:** COMPLETED
@@ -498,6 +514,14 @@
   - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
 - **Completion Status:** COMPLETED
 
+- [x] **Task ID:** T12.11
+- **Task Name:** Fix White Screen on Back Navigation & Draft-Only Calculator Restoration
+- **Description:** Wrap `RootNavigator` in `@react-navigation/native` `ThemeProvider` + themed root `View` and set `Tabs` `sceneStyle` background to eliminate white flashes on back navigation; restrict `basic_active_session` restoration strictly to `'draft'` entries, clear active session on `=` (`completed`), and clean up unstarred active drafts on `AC` without touching completed/starred history.
+- **Dependencies:** T12.10
+- **Testing Requirements:**
+  - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
+- **Completion Status:** COMPLETED
+
 - [x] **Task ID:** T12.8
 - **Task Name:** UI Improvement — Normal Equals Button & 5x4 Keypad Layout with Tall Plus
 - **Description:** Convert keypad to a balanced 5x4 grid (`AC BACK % ÷`, `7 8 9 ×`, `4 5 6 −`, `1 2 3` + tall `+`, `0 . =` + tall `+`) with pixel-aligned 4-column widths, normal 1x1 Equals button, and 2-row-tall Plus button.
@@ -518,6 +542,14 @@
 - **Task Name:** Calculation History UI/UX Redesign, Safe Clear & Direct Calculator Star
 - **Description:** Redesign `history.js` with `FlatList`, modern header (total + starred counts), `All (N)` / `Starred (N)` filters, compact cards with contextual action menu, two-step protected Clear History (non-starred vs explicit all-delete) using SQLite transactions, and direct Star/Unstar toggle in `BasicCalculatorScreen.js` preserving reopened starred state.
 - **Dependencies:** T12.9
+- **Testing Requirements:**
+  - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
+- **Completion Status:** COMPLETED
+
+- [x] **Task ID:** T12.11
+- **Task Name:** Fix White Screen on Back Navigation & Draft-Only Calculator Restoration
+- **Description:** Wrap `RootNavigator` in `@react-navigation/native` `ThemeProvider` + themed root `View` and set `Tabs` `sceneStyle` background to eliminate white flashes on back navigation; restrict `basic_active_session` restoration strictly to `'draft'` entries, clear active session on `=` (`completed`), and clean up unstarred active drafts on `AC` without touching completed/starred history.
+- **Dependencies:** T12.10
 - **Testing Requirements:**
   - `npm test` (66/66 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
 - **Completion Status:** COMPLETED

@@ -217,6 +217,16 @@ export async function deleteHistoryItem(id) {
   await db.runAsync('DELETE FROM history WHERE id = ?', [id]);
 }
 
+export async function deleteUnstarredDraftById(id) {
+  if (!id) return false;
+  const db = await getDatabase();
+  const res = await db.runAsync(
+    "DELETE FROM history WHERE id = ? AND status = 'draft' AND COALESCE(is_starred, 0) = 0",
+    [id]
+  );
+  return (res?.changes || 0) > 0;
+}
+
 export async function clearHistory({ includeStarred = false } = {}) {
   const db = await getDatabase();
   await db.withTransactionAsync(async () => {
