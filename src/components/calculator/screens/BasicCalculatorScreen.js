@@ -201,13 +201,32 @@ export function BasicCalculatorScreen({
   const effectiveDisplayWidth =
     displayWidth > 0 ? displayWidth : Math.max(200, windowWidth - 56);
 
+  const displayCardHeight = useMemo(
+    () => Math.round(Math.min(220, Math.max(176, windowHeight * 0.25))),
+    [windowHeight]
+  );
+  const expressionRegionHeight = Math.round(displayCardHeight * 0.26);
+  const resultRegionHeight = Math.round(displayCardHeight * 0.34);
+  const wordsRegionHeight = Math.round(displayCardHeight * 0.19);
+
+  const expressionFontMetrics = useMemo(
+    () =>
+      calculateDynamicFontSize({
+        text: formattedExpression || ' ',
+        availableWidth: effectiveDisplayWidth,
+        maxFontSize: 22,
+        minFontSize: 13,
+      }),
+    [formattedExpression, effectiveDisplayWidth]
+  );
+
   const resultFontMetrics = useMemo(
     () =>
       calculateDynamicFontSize({
         text: formattedResult,
         availableWidth: effectiveDisplayWidth,
         maxFontSize: 48,
-        minFontSize: 18,
+        minFontSize: 16,
       }),
     [formattedResult, effectiveDisplayWidth]
   );
@@ -298,6 +317,7 @@ export function BasicCalculatorScreen({
         style={[
           styles.displayCard,
           {
+            height: displayCardHeight,
             backgroundColor: theme.colors.surface,
             borderColor: theme.colors.border,
             borderRadius: theme.radii.xl,
@@ -347,49 +367,62 @@ export function BasicCalculatorScreen({
         </View>
 
         <View style={styles.displayNumbers} onLayout={handleDisplayLayout}>
-          <Text
-            numberOfLines={3}
-            selectable
-            style={[styles.expressionText, { color: theme.colors.textSecondary }]}
-          >
-            {expressionSegments.length > 0
-              ? expressionSegments.map((seg, idx) =>
-                  seg.operator ? (
-                    <Text
-                      key={`${idx}-${seg.operator}`}
-                      style={{
-                        color: operatorTextColors[seg.operator],
-                        fontWeight: '700',
-                      }}
-                    >
-                      {seg.text}
-                    </Text>
-                  ) : (
-                    seg.text
+          <View style={[styles.expressionRegion, { height: expressionRegionHeight }]}>
+            <Text
+              numberOfLines={expressionFontMetrics.overflowsSingleLine ? 2 : 1}
+              selectable
+              style={[
+                styles.expressionText,
+                {
+                  color: theme.colors.textSecondary,
+                  fontSize: expressionFontMetrics.fontSize,
+                  lineHeight: Math.round(expressionFontMetrics.fontSize * 1.2),
+                },
+              ]}
+            >
+              {expressionSegments.length > 0
+                ? expressionSegments.map((seg, idx) =>
+                    seg.operator ? (
+                      <Text
+                        key={`${idx}-${seg.operator}`}
+                        style={{
+                          color: operatorTextColors[seg.operator],
+                          fontWeight: '700',
+                        }}
+                      >
+                        {seg.text}
+                      </Text>
+                    ) : (
+                      seg.text
+                    )
                   )
-                )
-              : ' '}
-          </Text>
-          <Text
-            numberOfLines={resultFontMetrics.overflowsSingleLine ? 3 : 1}
-            selectable
-            style={[
-              styles.resultText,
-              {
-                color: theme.colors.text,
-                fontSize: resultFontMetrics.fontSize,
-                lineHeight: Math.round(resultFontMetrics.fontSize * 1.16),
-              },
-            ]}
-          >
-            {formattedResult}
-          </Text>
-          <Text
-            numberOfLines={2}
-            style={[styles.wordsText, { color: theme.colors.textMuted }]}
-          >
-            {resultInWords}
-          </Text>
+                : ' '}
+            </Text>
+          </View>
+          <View style={[styles.resultRegion, { height: resultRegionHeight }]}>
+            <Text
+              numberOfLines={resultFontMetrics.overflowsSingleLine ? 2 : 1}
+              selectable
+              style={[
+                styles.resultText,
+                {
+                  color: theme.colors.text,
+                  fontSize: resultFontMetrics.fontSize,
+                  lineHeight: Math.round(resultFontMetrics.fontSize * 1.15),
+                },
+              ]}
+            >
+              {formattedResult}
+            </Text>
+          </View>
+          <View style={[styles.wordsRegion, { height: wordsRegionHeight }]}>
+            <Text
+              numberOfLines={2}
+              style={[styles.wordsText, { color: theme.colors.textMuted }]}
+            >
+              {resultInWords}
+            </Text>
+          </View>
         </View>
       </View>
 
@@ -685,16 +718,16 @@ const styles = StyleSheet.create({
   displayCard: {
     borderWidth: 1,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
     marginBottom: 12,
     justifyContent: 'space-between',
-    minHeight: 152,
+    overflow: 'hidden',
   },
   displayTopBar: {
+    height: 22,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 4,
   },
   displayActions: {
     flexDirection: 'row',
@@ -708,12 +741,24 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'flex-end',
   },
+  expressionRegion: {
+    width: '100%',
+    justifyContent: 'flex-end',
+  },
+  resultRegion: {
+    width: '100%',
+    justifyContent: 'center',
+  },
+  wordsRegion: {
+    width: '100%',
+    justifyContent: 'flex-start',
+  },
   expressionText: {
     width: '100%',
     fontSize: 22,
     fontWeight: '600',
     textAlign: 'right',
-    minHeight: 30,
+    fontVariant: ['tabular-nums'],
   },
   resultText: {
     width: '100%',
@@ -721,13 +766,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'right',
     fontVariant: ['tabular-nums'],
-    marginTop: 2,
   },
   wordsText: {
-    fontSize: 13,
+    width: '100%',
+    fontSize: 12,
+    lineHeight: 16,
     fontWeight: '500',
     textAlign: 'right',
-    marginTop: 4,
   },
   keypad: {
     flex: 1,

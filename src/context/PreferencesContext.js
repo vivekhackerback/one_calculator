@@ -6,6 +6,7 @@ import {
   useMemo,
   useState,
 } from 'react';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from './ThemeContext';
@@ -102,30 +103,75 @@ export function PreferencesProvider({ children }) {
 
   const triggerHaptic = useCallback(
     (style = 'light') => {
-      if (!prefs.hapticEnabled) return;
+      if (!prefs.hapticEnabled) {
+        if (__DEV__) {
+          console.log('[Haptics] Skipped because hapticEnabled is false');
+        }
+        return;
+      }
 
-      let impactStyle = Haptics.ImpactFeedbackStyle.Light;
-      if (
+      const isMedium =
         style === 'delete' ||
         style === 'clear' ||
         style === 'equals' ||
-        style === 'medium'
-      ) {
-        impactStyle = Haptics.ImpactFeedbackStyle.Medium;
+        style === 'medium';
+
+      const impactStyle = isMedium
+        ? Haptics.ImpactFeedbackStyle.Medium
+        : Haptics.ImpactFeedbackStyle.Light;
+
+      if (__DEV__) {
+        console.log('[Haptics] Triggering feedback:', {
+          platform: Platform.OS,
+          style,
+          impactStyle,
+        });
       }
 
-      Haptics.impactAsync(impactStyle).catch((err) => {
-        if (__DEV__) {
-          console.warn('[Haptics] impactAsync failed, attempting Android fallback:', err);
-        }
-        return Haptics.performAndroidHapticsAsync(
-          Haptics.AndroidHaptics.Keyboard_Tap
-        ).catch((fallbackErr) => {
+      if (Platform.OS === 'android') {
+        // Android's View.performHapticFeedback (Keyboard_Tap / Virtual_Key) uses
+        // the OS-calibrated haptic motor directly, avoiding weak/ignored low-amplitude
+        // Vibrator waveforms from impactAsync(Light) on many Android devices.
+        const androidType = isMedium
+          ? Haptics.AndroidHaptics.Virtual_Key
+          : Haptics.AndroidHaptics.Keyboard_Tap;
+
+        Haptics.performAndroidHapticsAsync(androidType)
+          .then(() => {
+            if (__DEV__) {
+              console.log('[Haptics] Android performAndroidHapticsAsync succeeded:', androidType);
+            }
+          })
+          .catch((err) => {
+            if (__DEV__) {
+              console.warn('[Haptics] performAndroidHapticsAsync failed, falling back to impactAsync:', err);
+            }
+            return Haptics.impactAsync(impactStyle)
+              .then(() => {
+                if (__DEV__) {
+                  console.log('[Haptics] Android fallback impactAsync succeeded:', impactStyle);
+                }
+              })
+              .catch((fallbackErr) => {
+                if (__DEV__) {
+                  console.warn('[Haptics] Unavailable on this Android device:', fallbackErr);
+                }
+              });
+          });
+        return;
+      }
+
+      Haptics.impactAsync(impactStyle)
+        .then(() => {
           if (__DEV__) {
-            console.warn('[Haptics] Unavailable on this device:', fallbackErr);
+            console.log('[Haptics] impactAsync succeeded:', impactStyle);
+          }
+        })
+        .catch((err) => {
+          if (__DEV__) {
+            console.warn('[Haptics] impactAsync failed:', err);
           }
         });
-      });
     },
     [prefs.hapticEnabled]
   );

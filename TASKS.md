@@ -2,13 +2,13 @@
 
 ## Progress Summary
 
-- **Total Tasks:** 31
-- **Completed Tasks:** 31
+- **Total Tasks:** 32
+- **Completed Tasks:** 32
 - **Pending Tasks:** 0
 - **Current Task:** None (All tasks completed)
-- **Latest Test Results:** Basic Calculator Haptics, Operation Colors & Dynamic Display Upgrade: `npm test` (58/58 passed), `npx expo lint`, `npx expo export --platform android`.
-- **Known Issues:** Physical Android device haptic verification pending (no Android device connected via `adb` in this environment).
-- **Next Task:** Test on a physical Android device (`npx expo start --android` or `eas build --platform android`).
+- **Latest Test Results:** Haptic Vibration & Stable Display Layout Bug Fix: `npm test` (58/58 passed), `npx expo lint`, `npx expo export --platform android`.
+- **Known Issues:** Physical Android device haptic & visual verification pending (no Android device connected via `adb` in this environment).
+- **Next Task:** Verify on physical Android device (`npx expo start --android` or `eas build --platform android`).
 
 ---
 
@@ -408,4 +408,12 @@
 - **Dependencies:** T5.1, T11.1, T12.2
 - **Testing Requirements:**
   - `npm test` (58/58 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed.
+- **Completion Status:** COMPLETED
+
+- [x] **Task ID:** T12.4
+- **Task Name:** Bug Fix — Android Haptic Vibration & Stable Display Layout
+- **Description:** Use Android native `performAndroidHapticsAsync` (`Keyboard_Tap` / `Virtual_Key`) with `impactAsync` fallback in `PreferencesContext.js` + `__DEV__` haptic diagnostics, and lock `displayCard` and its expression/result/words regions to fixed heights in `BasicCalculatorScreen.js` so long numbers resize dynamically without shifting the display or keypad.
+- **Dependencies:** T12.3
+- **Testing Requirements:**
+  - `npm test`, `npx expo lint`, and `npx expo export --platform android` succeed; physical Android device verification required.
 - **Completion Status:** COMPLETED

@@ -24,6 +24,9 @@ export const CalculatorKey = memo(function CalculatorKey({
 
   const handlePressIn = () => {
     setIsPressed(true);
+    if (__DEV__) {
+      console.log('[CalculatorKey] onPressIn:', keyId ?? label);
+    }
     if (onPressInHaptic) {
       onPressInHaptic();
     }
