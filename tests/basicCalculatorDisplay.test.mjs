@@ -15,12 +15,35 @@ test('calculateDynamicFontSize uses maxFontSize for short numbers and shrinks fo
     availableWidth: width,
   });
 
-  assert.equal(shortNum.fontSize, 48);
+  assert.equal(shortNum.fontSize, 46);
   assert.equal(shortNum.overflowsSingleLine, false);
   assert.ok(medNum.fontSize <= shortNum.fontSize);
   assert.ok(longNum.fontSize < medNum.fontSize);
   assert.ok(veryLongNum.fontSize < longNum.fontSize);
-  assert.ok(veryLongNum.fontSize >= 18);
+  assert.ok(veryLongNum.fontSize >= 16);
+});
+
+test('calculateDynamicFontSize sizes scientific notation numbers to fit without clipping', () => {
+  const width = 300;
+  for (const sci of ['1.23e+10', '1.23e+15', '1.23e+21', '1.23e+100', '1.23e-10']) {
+    const res = calculateDynamicFontSize({
+      text: sci,
+      availableWidth: width,
+      maxFontSize: 46,
+      minFontSize: 16,
+    });
+    assert.equal(res.overflowsSingleLine, false, `${sci} should fit on one line`);
+    assert.ok(res.fontSize >= 16 && res.fontSize <= 46);
+  }
+
+  const longSci = calculateDynamicFontSize({
+    text: '1.23456789e+21',
+    availableWidth: width,
+    maxFontSize: 46,
+    minFontSize: 16,
+  });
+  assert.equal(longSci.overflowsSingleLine, false);
+  assert.ok(longSci.fontSize >= 24 && longSci.fontSize < 46);
 });
 
 test('calculateDynamicFontSize restores larger font size when digits are deleted', () => {

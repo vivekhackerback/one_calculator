@@ -2,12 +2,12 @@
 
 ## Progress Summary
 
-- **Total Tasks:** 32
-- **Completed Tasks:** 32
+- **Total Tasks:** 34
+- **Completed Tasks:** 34
 - **Pending Tasks:** 0
 - **Current Task:** None (All tasks completed)
-- **Latest Test Results:** Haptic Vibration & Stable Display Layout Bug Fix: `npm test` (58/58 passed), `npx expo lint`, `npx expo export --platform android`.
-- **Known Issues:** Physical Android device haptic & visual verification pending (no Android device connected via `adb` in this environment).
+- **Latest Test Results:** Equals Result Highlight & Centralized Haptic Service: `npm test` (62/62 passed), `npx expo lint` (0 errors), `npx expo export --platform android`.
+- **Known Issues:** Physical Android device verification pending (no Android device connected via `adb` in this environment).
 - **Next Task:** Verify on physical Android device (`npx expo start --android` or `eas build --platform android`).
 
 ---
@@ -416,4 +416,20 @@
 - **Dependencies:** T12.3
 - **Testing Requirements:**
   - `npm test`, `npx expo lint`, and `npx expo export --platform android` succeed; physical Android device verification required.
+- **Completion Status:** COMPLETED
+
+- [x] **Task ID:** T12.5
+- **Task Name:** Bug Fix — Scientific Notation Vertical Clipping & Android Haptic Diagnostics
+- **Description:** Fix vertical clipping of scientific notation (`e+`/`e-`) in `BasicCalculatorScreen.js` by allocating `49%` of inner display height to `resultRegion`, setting `includeFontPadding: false`, `lineHeight: Math.ceil(fontSize * 1.32)`, `textAlignVertical: 'center'`, and capping `maxResultFontSize` to fit `resultRegionHeight` with headroom; tune `e`/`+` width factors in `displaySize.js` and add platform/runtime `__DEV__` diagnostics in `PreferencesContext.js`.
+- **Dependencies:** T12.4
+- **Testing Requirements:**
+  - `npm test` (59/59 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
+- **Completion Status:** COMPLETED
+
+- [x] **Task ID:** T12.6
+- **Task Name:** Equals Result Highlight & Centralized Haptic Service
+- **Description:** Add `resultHighlight` theme tokens (`#2563EB` light, `#60A5FA` dark) and animate `BasicCalculatorScreen` result color smoothly on `state.justEvaluated` (resetting on any subsequent input); centralize haptic feedback in `src/services/haptics.js` + `src/services/hapticTypes.js` with `__DEV__` diagnostics and multi-tier Android fallbacks.
+- **Dependencies:** T12.5
+- **Testing Requirements:**
+  - `npm test` (62/62 passed), `npx expo lint` (0 errors), and `npx expo export --platform android` succeed; physical Android device verification required.
 - **Completion Status:** COMPLETED

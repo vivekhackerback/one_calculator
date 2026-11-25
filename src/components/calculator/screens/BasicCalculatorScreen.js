@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import {
+  Animated,
   Pressable,
   Share,
   StyleSheet,
@@ -50,6 +51,15 @@ export function BasicCalculatorScreen({
   const [copied, setCopied] = useState(false);
   const [keypadHeight, setKeypadHeight] = useState(0);
   const [displayWidth, setDisplayWidth] = useState(0);
+  const [resultColorAnim] = useState(() => new Animated.Value(0));
+
+  useEffect(() => {
+    Animated.timing(resultColorAnim, {
+      toValue: state.justEvaluated ? 1 : 0,
+      duration: 180,
+      useNativeDriver: false,
+    }).start();
+  }, [state.justEvaluated, resultColorAnim]);
 
   const stateRef = useRef(state);
   useEffect(() => {
@@ -144,6 +154,7 @@ export function BasicCalculatorScreen({
 
   const hapticNumber = useCallback(() => triggerHaptic('number'), [triggerHaptic]);
   const hapticOperator = useCallback(() => triggerHaptic('operator'), [triggerHaptic]);
+  const hapticDecimal = useCallback(() => triggerHaptic('decimal'), [triggerHaptic]);
   const hapticClear = useCallback(() => triggerHaptic('clear'), [triggerHaptic]);
   const hapticDelete = useCallback(() => triggerHaptic('delete'), [triggerHaptic]);
   const hapticEquals = useCallback(() => triggerHaptic('equals'), [triggerHaptic]);
@@ -202,22 +213,32 @@ export function BasicCalculatorScreen({
     displayWidth > 0 ? displayWidth : Math.max(200, windowWidth - 56);
 
   const displayCardHeight = useMemo(
-    () => Math.round(Math.min(220, Math.max(176, windowHeight * 0.25))),
+    () => Math.round(Math.min(224, Math.max(184, windowHeight * 0.255))),
     [windowHeight]
   );
-  const expressionRegionHeight = Math.round(displayCardHeight * 0.26);
-  const resultRegionHeight = Math.round(displayCardHeight * 0.34);
-  const wordsRegionHeight = Math.round(displayCardHeight * 0.19);
+  // Reserve 44px for vertical padding (20px) + top bar (22px) + 2px spacing
+  const innerDisplayHeight = displayCardHeight - 44;
+  const expressionRegionHeight = Math.round(innerDisplayHeight * 0.29);
+  const resultRegionHeight = Math.round(innerDisplayHeight * 0.49);
+  const wordsRegionHeight =
+    innerDisplayHeight - expressionRegionHeight - resultRegionHeight;
+
+  // Ensure max font size always leaves >= 32% vertical headroom inside its region
+  const maxExpressionFontSize = Math.min(
+    22,
+    Math.floor(expressionRegionHeight / 1.45)
+  );
+  const maxResultFontSize = Math.min(46, Math.floor(resultRegionHeight / 1.48));
 
   const expressionFontMetrics = useMemo(
     () =>
       calculateDynamicFontSize({
         text: formattedExpression || ' ',
         availableWidth: effectiveDisplayWidth,
-        maxFontSize: 22,
+        maxFontSize: maxExpressionFontSize,
         minFontSize: 13,
       }),
-    [formattedExpression, effectiveDisplayWidth]
+    [formattedExpression, effectiveDisplayWidth, maxExpressionFontSize]
   );
 
   const resultFontMetrics = useMemo(
@@ -225,10 +246,10 @@ export function BasicCalculatorScreen({
       calculateDynamicFontSize({
         text: formattedResult,
         availableWidth: effectiveDisplayWidth,
-        maxFontSize: 48,
+        maxFontSize: maxResultFontSize,
         minFontSize: 16,
       }),
-    [formattedResult, effectiveDisplayWidth]
+    [formattedResult, effectiveDisplayWidth, maxResultFontSize]
   );
 
   const expressionSegments = useMemo(
@@ -284,6 +305,11 @@ export function BasicCalculatorScreen({
 
   const eqBg = theme.colors.keypadEqualsBg;
   const eqPressed = theme.colors.keypadEqualsPressedBg;
+
+  const resultTextColor = resultColorAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [theme.colors.text, theme.colors.resultHighlight],
+  });
 
   return (
     <View
@@ -376,7 +402,7 @@ export function BasicCalculatorScreen({
                 {
                   color: theme.colors.textSecondary,
                   fontSize: expressionFontMetrics.fontSize,
-                  lineHeight: Math.round(expressionFontMetrics.fontSize * 1.2),
+                  lineHeight: Math.ceil(expressionFontMetrics.fontSize * 1.28),
                 },
               ]}
             >
@@ -400,20 +426,20 @@ export function BasicCalculatorScreen({
             </Text>
           </View>
           <View style={[styles.resultRegion, { height: resultRegionHeight }]}>
-            <Text
+            <Animated.Text
               numberOfLines={resultFontMetrics.overflowsSingleLine ? 2 : 1}
               selectable
               style={[
                 styles.resultText,
                 {
-                  color: theme.colors.text,
+                  color: resultTextColor,
                   fontSize: resultFontMetrics.fontSize,
-                  lineHeight: Math.round(resultFontMetrics.fontSize * 1.15),
+                  lineHeight: Math.ceil(resultFontMetrics.fontSize * 1.32),
                 },
               ]}
             >
               {formattedResult}
-            </Text>
+            </Animated.Text>
           </View>
           <View style={[styles.wordsRegion, { height: wordsRegionHeight }]}>
             <Text
@@ -655,7 +681,7 @@ export function BasicCalculatorScreen({
                 borderColor={keyBorder}
                 borderRadius={keyRadius}
                 fontSize={keyFontSize * 1.15}
-                onPressInHaptic={hapticNumber}
+                onPressInHaptic={hapticDecimal}
                 onPressKey={pressKey}
               />
             </View>
@@ -759,13 +785,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'right',
     fontVariant: ['tabular-nums'],
+    includeFontPadding: false,
+    paddingVertical: 1,
   },
   resultText: {
     width: '100%',
-    fontSize: 48,
+    fontSize: 46,
     fontWeight: '700',
     textAlign: 'right',
+    textAlignVertical: 'center',
     fontVariant: ['tabular-nums'],
+    includeFontPadding: false,
+    paddingVertical: 2,
   },
   wordsText: {
     width: '100%',
@@ -773,6 +804,7 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     fontWeight: '500',
     textAlign: 'right',
+    includeFontPadding: false,
   },
   keypad: {
     flex: 1,

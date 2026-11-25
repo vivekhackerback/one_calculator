@@ -1,15 +1,19 @@
 const NARROW_CHARS = new Set([',', '.', ' ']);
-const SIGN_CHARS = new Set(['-', '+', '−']);
+const MINUS_CHARS = new Set(['-', '−']);
+const PLUS_CHARS = new Set(['+']);
+const EXPONENT_CHARS = new Set(['e', 'E']);
 const DISPLAY_OPERATORS = new Set(['+', '−', '×', '÷', '%']);
 
 /**
  * Estimate relative character width units for bold tabular/sans-serif numerals
- * so font sizing adapts accurately to commas, decimals, and digits.
+ * and scientific notation glyphs (e, +, -) so font sizing never clips.
  */
 function getCharWidthFactor(ch) {
   if (NARROW_CHARS.has(ch)) return 0.34;
-  if (SIGN_CHARS.has(ch)) return 0.48;
-  return 0.64;
+  if (MINUS_CHARS.has(ch)) return 0.45;
+  if (PLUS_CHARS.has(ch)) return 0.62;
+  if (EXPONENT_CHARS.has(ch)) return 0.6;
+  return 0.65;
 }
 
 /**
@@ -22,8 +26,8 @@ function getCharWidthFactor(ch) {
 export function calculateDynamicFontSize({
   text,
   availableWidth,
-  maxFontSize = 48,
-  minFontSize = 18,
+  maxFontSize = 46,
+  minFontSize = 16,
 }) {
   if (!text || !availableWidth || availableWidth <= 0) {
     return { fontSize: maxFontSize, overflowsSingleLine: false };
@@ -35,7 +39,7 @@ export function calculateDynamicFontSize({
   }
 
   // Add a small safety buffer for OEM font kerning / horizontal padding
-  const effectiveUnits = Math.max(widthUnits + 0.45, 1);
+  const effectiveUnits = Math.max(widthUnits + 0.5, 1);
   const idealFontSize = Math.floor((availableWidth / effectiveUnits) * 10) / 10;
 
   if (idealFontSize >= maxFontSize) {
