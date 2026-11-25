@@ -9,6 +9,7 @@ import shutil
 import subprocess
 from pathlib import Path
 from urllib.request import Request, urlopen
+from urllib.error import HTTPError, URLError
 
 # ==================================================
 # CONFIGURATION
@@ -19,6 +20,9 @@ PROJECT = DEFAULT_VPS_PROJECT if DEFAULT_VPS_PROJECT.exists() else Path(__file__
 
 REPOSITORY = "https://github.com/vivekhackerback/one_calculator.git"
 BRANCH = "main"
+
+# Derive Nginx folder automatically from the active project directory name
+PROJECT_SLUG = re.sub(r"[^a-zA-Z0-9_]+", "_", PROJECT.name).strip("_").lower() or "app"
 
 KEYSTORE = PROJECT / "key/my-upload-key.keystore"
 
@@ -32,7 +36,7 @@ APK_SOURCE = (
     "android/app/build/outputs/apk/release/app-release.apk"
 )
 
-NGINX_DIR = Path(os.getenv("NGINX_DIR", "/var/www/one_calculator_apk"))
+NGINX_DIR = Path(os.getenv("NGINX_DIR", f"/var/www/{PROJECT_SLUG}_apk"))
 AAB_DEST = NGINX_DIR / "app-release.aab"
 APK_DEST = NGINX_DIR / "app-release.apk"
 
@@ -41,7 +45,7 @@ AAB_DOWNLOAD_URL = f"http://{SERVER_IP}/app-release.aab"
 APK_DOWNLOAD_URL = f"http://{SERVER_IP}/app-release.apk"
 DOWNLOAD_URL = AAB_DOWNLOAD_URL  # Kept for backward compatibility
 
-BACKUP_DIR = Path.home() / "one_calculator_backup"
+BACKUP_DIR = Path.home() / f"{PROJECT_SLUG}_backup"
 
 # ==================================================
 # COMMAND EXECUTOR
@@ -96,16 +100,17 @@ def select_build_target():
         if arg in ("-h", "--help", "help"):
             print("\nUsage: python3 vps_python_script.py [TARGET] [OPTIONS]")
             print("\nTargets:")
-            print("  --aab, -aab       Build signed Android App Bundle (.aab)")
-            print("  --apk, -apk       Build signed APK (.apk)")
-            print("  --both, -both     Build and deploy both AAB and APK")
+            print("  --aab, -aab           Build signed Android App Bundle (.aab)")
+            print("  --apk, -apk           Build signed APK (.apk)")
+            print("  --both, -both         Build and deploy both signed AAB and APK")
+            print("  --apk-no-key, -nokey  Build & deploy APK without release keystore")
             print("\nOptions:")
             print("  --version-code, -vc <num>  Override Android versionCode")
-            print("  BUILD_TARGET=apk/aab/both  Set target via environment variable")
+            print("  BUILD_TARGET=apk/aab/both/apk-unsigned")
             print("  VERSION_CODE=<num>         Set versionCode via environment variable\n")
             sys.exit(0)
 
-    # 1. Check CLI arguments (e.g. --aab, --apk, --both, --target aab/apk/both)
+    # 1. Check CLI arguments
     for i, arg in enumerate(sys.argv[1:], start=1):
         clean_arg = arg.strip().lower()
         if clean_arg in ("--aab", "-aab"):
@@ -114,23 +119,27 @@ def select_build_target():
             return "apk"
         if clean_arg in ("--both", "-both"):
             return "both"
+        if clean_arg in ("--apk-no-key", "--no-key", "-nokey", "--unsigned-apk", "--apk-unsigned"):
+            return "apk-unsigned"
         if clean_arg in ("--target", "-t", "--build-type", "--type") and i + 1 < len(sys.argv):
             val = sys.argv[i + 1].strip().lower()
-            if val in ("aab", "apk", "both"):
-                return val
+            if val in ("aab", "apk", "both", "apk-unsigned", "apk-no-key"):
+                return "apk-unsigned" if val == "apk-no-key" else val
         if clean_arg.startswith("--target=") or clean_arg.startswith("--type="):
             val = clean_arg.split("=", 1)[1].strip().lower()
-            if val in ("aab", "apk", "both"):
-                return val
-        if clean_arg in ("aab", "apk", "both"):
+            if val in ("aab", "apk", "both", "apk-unsigned", "apk-no-key"):
+                return "apk-unsigned" if val == "apk-no-key" else val
+        if clean_arg in ("aab", "apk", "both", "apk-unsigned"):
             return clean_arg
 
-    # 2. Check environment variable (e.g. BUILD_TARGET=apk)
+    # 2. Check environment variable
     env_target = os.getenv("BUILD_TARGET") or os.getenv("BUILD_TYPE")
     if env_target:
         env_target = env_target.strip().lower()
-        if env_target in ("aab", "apk", "both"):
+        if env_target in ("aab", "apk", "both", "apk-unsigned"):
             return env_target
+        if env_target in ("apk-no-key", "no-key", "nokey", "unsigned", "4"):
+            return "apk-unsigned"
         if env_target == "1":
             return "aab"
         if env_target == "2":
@@ -141,21 +150,24 @@ def select_build_target():
     # 3. Interactive prompt
     print("\n" + "=" * 50)
     print("SELECT BUILD TARGET:")
-    print("  [1] AAB  - Signed Android App Bundle (for Google Play Store)")
-    print("  [2] APK  - Signed APK file (Direct installation on devices)")
-    print("  [3] Both - Build and deploy both AAB and APK")
+    print("  [1] AAB          - Signed Android App Bundle (Play Store)")
+    print("  [2] APK          - Signed APK file (Release keystore)")
+    print("  [3] Both         - Build and deploy both signed AAB and APK")
+    print("  [4] APK (No Key) - Build & deploy APK without release keystore")
     print("=" * 50)
 
     while True:
         try:
-            choice = input("Select build target [1/2/3] (Default: 1 - AAB): ").strip().lower()
+            choice = input("Select build target [1/2/3/4] (Default: 1 - AAB): ").strip().lower()
             if not choice or choice in ("1", "aab"):
                 return "aab"
             if choice in ("2", "apk"):
                 return "apk"
             if choice in ("3", "both"):
                 return "both"
-            print("Invalid choice. Please enter 1, 2, or 3.")
+            if choice in ("4", "apk-unsigned", "apk-no-key", "nokey", "no-key"):
+                return "apk-unsigned"
+            print("Invalid choice. Please enter 1, 2, 3, or 4.")
         except (KeyboardInterrupt, EOFError):
             print("\nOperation cancelled by user.")
             sys.exit(0)
@@ -653,7 +665,7 @@ def build_artifacts(env, target):
     tasks = []
     if target in ("aab", "both"):
         tasks.append("bundleRelease")
-    if target in ("apk", "both"):
+    if target in ("apk", "both", "apk-unsigned"):
         tasks.append("assembleRelease")
 
     target_display = " + ".join(tasks)
@@ -720,7 +732,7 @@ def verify_artifacts(target):
             "url": AAB_DOWNLOAD_URL,
         })
 
-    if target in ("apk", "both"):
+    if target in ("apk", "both", "apk-unsigned"):
         actual_apk = APK_SOURCE
         if not actual_apk.exists():
             apk_dir = PROJECT / "android/app/build/outputs/apk/release"
@@ -807,21 +819,10 @@ def deploy_to_nginx(artifacts):
     print("=" * 50)
     print(f"File deployment started: Deploying artifact(s) to Nginx directory ({NGINX_DIR})...")
 
-    run([
-        "sudo", "mkdir", "-p", str(NGINX_DIR)
-    ])
-
-    run([
-        "sudo", "chmod", "755", "/var"
-    ])
-
-    run([
-        "sudo", "chmod", "755", "/var/www"
-    ])
-
-    run([
-        "sudo", "chmod", "755", str(NGINX_DIR)
-    ])
+    run(["sudo", "mkdir", "-p", str(NGINX_DIR)])
+    run(["sudo", "chmod", "755", "/var"])
+    run(["sudo", "chmod", "755", "/var/www"])
+    run(["sudo", "chmod", "755", str(NGINX_DIR)])
 
     for item in artifacts:
         run([
@@ -832,11 +833,18 @@ def deploy_to_nginx(artifacts):
         ])
         print(f"  [OK] {item['type']} deployed successfully to: {item['dest']}")
 
-    run(["sudo", "nginx", "-t"])
+    # Sync Nginx root directory to the current project's NGINX_DIR
+    sync_nginx_root_cmd = (
+        f"for f in /etc/nginx/sites-enabled/* /etc/nginx/conf.d/*.conf; do "
+        f"[ -f \"$f\" ] && grep -qE 'root\\s+/var/www/' \"$f\" && "
+        f"sed -i -E 's|root\\s+/var/www/[^;]+;|root {NGINX_DIR};|g' \"$f\" && "
+        f"echo \"Updated Nginx root in $f -> {NGINX_DIR}\"; "
+        f"done; true"
+    )
+    run(["sudo", "bash", "-c", sync_nginx_root_cmd])
 
-    run([
-        "sudo", "systemctl", "reload", "nginx"
-    ])
+    run(["sudo", "nginx", "-t"])
+    run(["sudo", "systemctl", "reload", "nginx"])
 
     print("File deployment completed successfully.")
 
@@ -861,18 +869,23 @@ def verify_deployment(artifacts):
         if src.stat().st_size != dest.stat().st_size:
             raise RuntimeError(f"Deployed {item['type']} size mismatch.")
 
-        request = Request(
-            url,
-            method="HEAD"
-        )
+        request = Request(url, method="HEAD")
 
-        with urlopen(request, timeout=30) as response:
-            if response.status != 200:
-                raise RuntimeError(
-                    f"Download failed for {item['type']} ({url}): HTTP {response.status}"
-                )
-
-            print(f"HTTP Status for {item['type']} ({url}): {response.status}")
+        try:
+            with urlopen(request, timeout=30) as response:
+                if response.status != 200:
+                    raise RuntimeError(
+                        f"Download failed for {item['type']} ({url}): HTTP {response.status}"
+                    )
+                print(f"HTTP Status for {item['type']} ({url}): {response.status}")
+        except HTTPError as e:
+            raise RuntimeError(
+                f"Download failed for {item['type']} ({url}): HTTP {e.code} {e.reason}"
+            )
+        except URLError as e:
+            raise RuntimeError(
+                f"Could not reach {url}: {e.reason}"
+            )
 
     print("All download URLs verified successfully.")
 
@@ -890,12 +903,18 @@ def main():
         if not (PROJECT / ".git").exists():
             raise RuntimeError("Git repository not found.")
 
-        # Step 1: Select build target (AAB / APK / Both)
+        # Step 1: Select build target (AAB / APK / Both / APK without key)
         target = select_build_target()
+        requires_release_key = target != "apk-unsigned"
         print(f"\nTarget artifact selected: {target.upper()}")
+        print(f"Nginx deployment folder : {NGINX_DIR}")
 
-        # Step 2: Obtain signing credentials
-        env = get_signing_credentials()
+        # Step 2: Obtain signing credentials (skip for unsigned/no-key APK)
+        if requires_release_key:
+            env = get_signing_credentials()
+        else:
+            print("\n[1/14] Skipping release keystore (APK without key selected)")
+            env = os.environ.copy()
 
         # Step 3: Stash and backup local Git changes
         backup_local_changes()
@@ -910,7 +929,10 @@ def main():
         check_project_config()
 
         # Step 7: Verify release keystore & certificate fingerprint
-        verify_keystore(env)
+        if requires_release_key:
+            verify_keystore(env)
+        else:
+            print("\n[6/14] Skipping release keystore verification (no-key APK)")
 
         # Step 8: Sync versions in app.json before prebuild
         sync_android_version()
@@ -922,7 +944,10 @@ def main():
         verify_android_project()
 
         # Step 11: [STAGE: Configure Release Signing] Inject release signingConfig into build.gradle
-        configure_release_signing(env)
+        if requires_release_key:
+            configure_release_signing(env)
+        else:
+            print("\n[10/14] Keeping default debug signingConfig for no-key APK")
 
         # Step 12: Sync Android Gradle version and clean old Gradle cache
         sync_android_version()
@@ -935,7 +960,10 @@ def main():
         artifacts = verify_artifacts(target)
 
         # Step 15: Verify digital signatures & display fingerprints
-        verify_signatures(artifacts)
+        if requires_release_key:
+            verify_signatures(artifacts)
+        else:
+            print("\nSkipping release signature verification (no-key APK)")
 
         # Step 16: [STAGE: File Deployment] Deploy to Nginx & reload
         deploy_to_nginx(artifacts)
