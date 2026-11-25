@@ -103,15 +103,21 @@ export function PreferencesProvider({ children }) {
   const triggerHaptic = useCallback(
     (style = 'light') => {
       if (!prefs.hapticEnabled) return;
-      try {
-        if (style === 'selection') {
-          Haptics.selectionAsync();
-        } else {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        }
-      } catch {
-        // Ignore on unsupported devices
+      let promise;
+      if (style === 'selection' || style === 'number' || style === 'light') {
+        promise = Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } else if (style === 'operator' || style === 'delete') {
+        promise = Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      } else if (style === 'clear') {
+        promise = Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      } else if (style === 'equals') {
+        promise = Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        promise = Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
+      Promise.resolve(promise).catch(() => {
+        // Gracefully ignore on devices without haptic hardware
+      });
     },
     [prefs.hapticEnabled]
   );

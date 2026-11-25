@@ -66,7 +66,6 @@ export default function CalculatorScreen() {
       toggleFavoriteCalculator(calculator.id);
     },
     onRecordHistory: (entry) => {
-      triggerHaptic('light');
       addHistoryEntry(entry);
     },
     formatNumber,
