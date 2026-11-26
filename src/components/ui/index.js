@@ -6,5 +6,6 @@ export { CategoryChip } from './CategoryChip';
 export { DateWheelPicker } from './DateWheelPicker';
 export { EmptyState } from './EmptyState';
 export { InputField } from './InputField';
+export { RangeSlider } from './RangeSlider';
 export { ScreenContainer } from './ScreenContainer';
 export { SegmentedControl } from './SegmentedControl';
