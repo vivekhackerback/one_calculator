@@ -11,7 +11,7 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.onecalculator.app",
+      "package": "com.tplpro.onecalculator",
       "versionCode": 1,
       "permissions": [
         "VIBRATE"

@@ -1,5 +1,4 @@
 import { Platform, Vibration } from 'react-native';
-import Constants from 'expo-constants';
 import * as Haptics from 'expo-haptics';
 import { getHapticSpec } from './hapticTypes';
 
@@ -23,9 +22,6 @@ function resolveAndroidHapticType(androidType) {
  */
 export function triggerAppHaptic(actionType = 'light', { enabled = true } = {}) {
   if (!enabled) {
-    if (__DEV__) {
-      console.log('[Haptics] Skipped because hapticEnabled preference is false');
-    }
     return;
   }
 
@@ -33,58 +29,21 @@ export function triggerAppHaptic(actionType = 'light', { enabled = true } = {}) 
   const impactStyle = resolveImpactStyle(spec.intensity);
   const androidHaptic = resolveAndroidHapticType(spec.androidType);
 
-  if (__DEV__) {
-    console.log('[Haptics] Invoking:', {
-      actionType,
-      intensity: spec.intensity,
-      platform: Platform.OS,
-      platformVersion: Platform.Version,
-      executionEnvironment: Constants.executionEnvironment,
-    });
-  }
-
   if (Platform.OS === 'android') {
-    Haptics.performAndroidHapticsAsync(androidHaptic)
-      .then(() => {
-        if (__DEV__) {
-          console.log('[Haptics] performAndroidHapticsAsync resolved:', androidHaptic);
-        }
-      })
-      .catch((err) => {
-        if (__DEV__) {
-          console.warn('[Haptics] performAndroidHapticsAsync rejected, trying impactAsync:', err);
-        }
-        return Haptics.impactAsync(impactStyle)
-          .then(() => {
-            if (__DEV__) {
-              console.log('[Haptics] Android fallback impactAsync resolved:', impactStyle);
-            }
-          })
-          .catch((impactErr) => {
-            if (__DEV__) {
-              console.warn('[Haptics] Android impactAsync rejected, trying Vibration.vibrate:', impactErr);
-            }
-            try {
-              Vibration.vibrate(spec.fallbackMs);
-            } catch (vibErr) {
-              if (__DEV__) {
-                console.warn('[Haptics] Vibration unavailable:', vibErr);
-              }
-            }
-          });
+    // On Android, View.performHapticFeedback silently does nothing when system
+    // "Touch vibration" is off, and expo-haptics impactAsync(Light) uses 30/255
+    // amplitude that is imperceptible on many ERM motors. Vibration.vibrate(ms)
+    // uses VibrationEffect.DEFAULT_AMPLITUDE directly and works reliably.
+    try {
+      Vibration.vibrate(spec.fallbackMs);
+      return;
+    } catch {
+      Haptics.performAndroidHapticsAsync(androidHaptic).catch(() => {
+        Haptics.impactAsync(impactStyle).catch(() => {});
       });
+    }
     return;
   }
 
-  Haptics.impactAsync(impactStyle)
-    .then(() => {
-      if (__DEV__) {
-        console.log('[Haptics] impactAsync resolved:', impactStyle);
-      }
-    })
-    .catch((err) => {
-      if (__DEV__) {
-        console.warn('[Haptics] impactAsync rejected:', err);
-      }
-    });
+  Haptics.impactAsync(impactStyle).catch(() => {});
 }

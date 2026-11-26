@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import {
   AppState,
   Pressable,
+  ScrollView,
   Share,
   StyleSheet,
   Text,
@@ -33,7 +34,7 @@ import { getAppStateValue, setAppStateValue } from '../../../db/database';
 import { CalculatorKey } from '../CalculatorKey';
 
 const GAP = 10;
-const HISTORY_DEBOUNCE_MS = 350;
+const HISTORY_DEBOUNCE_MS = 800;
 const BASIC_SESSION_KEY = 'basic_active_session';
 
 export function BasicCalculatorScreen({
@@ -70,6 +71,8 @@ export function BasicCalculatorScreen({
   const [displayWidth, setDisplayWidth] = useState(0);
   const [equalsHighlighted, setEqualsHighlighted] = useState(false);
   const [isCalcStarred, setIsCalcStarred] = useState(Boolean(initialCalcStarred));
+  const expressionScrollRef = useRef(null);
+  const resultScrollRef = useRef(null);
 
   const stateRef = useRef(state);
   useEffect(() => {
@@ -227,14 +230,15 @@ export function BasicCalculatorScreen({
       return;
     }
 
-    persistSessionSnapshot(state.expression, 'draft');
-
     if (state.expression) {
       const exprSnapshot = state.expression;
       historyTimerRef.current = setTimeout(() => {
+        persistSessionSnapshot(exprSnapshot, 'draft');
         saveCalculationNow(exprSnapshot, { finalized: false });
         historyTimerRef.current = null;
       }, HISTORY_DEBOUNCE_MS);
+    } else {
+      persistSessionSnapshot('', 'draft');
     }
 
     return () => {
@@ -447,17 +451,25 @@ export function BasicCalculatorScreen({
   );
   // Reserve 44px for vertical padding (20px) + top bar (22px) + 2px spacing
   const innerDisplayHeight = displayCardHeight - 44;
-  const expressionRegionHeight = Math.round(innerDisplayHeight * 0.29);
-  const resultRegionHeight = Math.round(innerDisplayHeight * 0.49);
+  const expressionRegionHeight = Math.round(innerDisplayHeight * 0.49);
+  const resultRegionHeight = Math.round(innerDisplayHeight * 0.3);
   const wordsRegionHeight =
     innerDisplayHeight - expressionRegionHeight - resultRegionHeight;
 
-  // Ensure max font size always leaves >= 32% vertical headroom inside its region
+  // Input expression is larger than the answer; keep >= 32% vertical headroom
   const maxExpressionFontSize = Math.min(
-    22,
+    44,
     Math.floor(expressionRegionHeight / 1.45)
   );
-  const maxResultFontSize = Math.min(46, Math.floor(resultRegionHeight / 1.48));
+  const maxResultFontSize = Math.min(28, Math.floor(resultRegionHeight / 1.48));
+
+  const handleScrollExpressionEnd = useCallback(() => {
+    expressionScrollRef.current?.scrollToEnd({ animated: false });
+  }, []);
+
+  const handleScrollResultEnd = useCallback(() => {
+    resultScrollRef.current?.scrollToEnd({ animated: false });
+  }, []);
 
   const expressionFontMetrics = useMemo(
     () =>
@@ -465,7 +477,7 @@ export function BasicCalculatorScreen({
         text: formattedExpression || ' ',
         availableWidth: effectiveDisplayWidth,
         maxFontSize: maxExpressionFontSize,
-        minFontSize: 13,
+        minFontSize: 24,
       }),
     [formattedExpression, effectiveDisplayWidth, maxExpressionFontSize]
   );
@@ -476,7 +488,7 @@ export function BasicCalculatorScreen({
         text: formattedResult,
         availableWidth: effectiveDisplayWidth,
         maxFontSize: maxResultFontSize,
-        minFontSize: 16,
+        minFontSize: 18,
       }),
     [formattedResult, effectiveDisplayWidth, maxResultFontSize]
   );
@@ -542,7 +554,7 @@ export function BasicCalculatorScreen({
   const isResultHighlighted = equalsHighlighted || state.justEvaluated;
   const resultTextColor = isResultHighlighted
     ? theme.colors.resultHighlight
-    : theme.colors.text;
+    : theme.colors.textSecondary;
 
   return (
     <View
@@ -657,52 +669,70 @@ export function BasicCalculatorScreen({
 
         <View style={styles.displayNumbers} onLayout={handleDisplayLayout}>
           <View style={[styles.expressionRegion, { height: expressionRegionHeight }]}>
-            <Text
-              numberOfLines={expressionFontMetrics.overflowsSingleLine ? 2 : 1}
-              selectable
-              style={[
-                styles.expressionText,
-                {
-                  color: theme.colors.textSecondary,
-                  fontSize: expressionFontMetrics.fontSize,
-                  lineHeight: Math.ceil(expressionFontMetrics.fontSize * 1.28),
-                },
-              ]}
+            <ScrollView
+              ref={expressionScrollRef}
+              horizontal
+              nestedScrollEnabled
+              showsHorizontalScrollIndicator={false}
+              keyboardShouldPersistTaps="always"
+              onContentSizeChange={handleScrollExpressionEnd}
+              style={styles.horizontalScroll}
+              contentContainerStyle={styles.horizontalTextScrollContent}
             >
-              {expressionSegments.length > 0
-                ? expressionSegments.map((seg, idx) =>
-                    seg.operator ? (
-                      <Text
-                        key={`${idx}-${seg.operator}`}
-                        style={{
-                          color: operatorTextColors[seg.operator],
-                          fontWeight: '700',
-                        }}
-                      >
-                        {seg.text}
-                      </Text>
-                    ) : (
-                      seg.text
+              <Text
+                style={[
+                  styles.expressionText,
+                  {
+                    color: theme.colors.text,
+                    fontSize: expressionFontMetrics.fontSize,
+                    lineHeight: Math.ceil(expressionFontMetrics.fontSize * 1.28),
+                  },
+                ]}
+              >
+                {expressionSegments.length > 0
+                  ? expressionSegments.map((seg, idx) =>
+                      seg.operator ? (
+                        <Text
+                          key={`${idx}-${seg.operator}`}
+                          style={{
+                            color: operatorTextColors[seg.operator],
+                            fontWeight: '700',
+                          }}
+                        >
+                          {seg.text}
+                        </Text>
+                      ) : (
+                        seg.text
+                      )
                     )
-                  )
-                : ' '}
-            </Text>
+                  : ' '}
+              </Text>
+            </ScrollView>
           </View>
           <View style={[styles.resultRegion, { height: resultRegionHeight }]}>
-            <Text
-              numberOfLines={resultFontMetrics.overflowsSingleLine ? 2 : 1}
-              selectable
-              style={[
-                styles.resultText,
-                {
-                  color: resultTextColor,
-                  fontSize: resultFontMetrics.fontSize,
-                  lineHeight: Math.ceil(resultFontMetrics.fontSize * 1.32),
-                },
-              ]}
+            <ScrollView
+              ref={resultScrollRef}
+              horizontal
+              nestedScrollEnabled
+              showsHorizontalScrollIndicator={false}
+              keyboardShouldPersistTaps="always"
+              onContentSizeChange={handleScrollResultEnd}
+              style={styles.horizontalScroll}
+              contentContainerStyle={styles.horizontalTextScrollContent}
             >
-              {formattedResult}
-            </Text>
+              <Text
+                style={[
+                  styles.resultText,
+                  {
+                    color: resultTextColor,
+                    fontSize: resultFontMetrics.fontSize,
+                    lineHeight: Math.ceil(resultFontMetrics.fontSize * 1.32),
+                  },
+                ]}
+              >
+                {formattedResult}
+              </Text>
+            </ScrollView>
           </View>
           <View style={[styles.wordsRegion, { height: wordsRegionHeight }]}>
             <Text
@@ -1027,18 +1057,25 @@ const styles = StyleSheet.create({
     width: '100%',
     justifyContent: 'flex-start',
   },
-  expressionText: {
+  horizontalScroll: {
     width: '100%',
-    fontSize: 22,
-    fontWeight: '600',
+    height: '100%',
+  },
+  horizontalTextScrollContent: {
+    flexGrow: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  expressionText: {
+    fontSize: 44,
+    fontWeight: '700',
     textAlign: 'right',
     fontVariant: ['tabular-nums'],
     includeFontPadding: false,
     paddingVertical: 1,
   },
   resultText: {
-    width: '100%',
-    fontSize: 46,
+    fontSize: 28,
     fontWeight: '700',
     textAlign: 'right',
     textAlignVertical: 'center',

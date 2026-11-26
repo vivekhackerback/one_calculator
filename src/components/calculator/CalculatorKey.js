@@ -1,4 +1,4 @@
-import { memo, useRef, useState } from 'react';
+import { memo, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, Text } from 'react-native';
 
 export const CalculatorKey = memo(function CalculatorKey({
@@ -20,59 +20,41 @@ export const CalculatorKey = memo(function CalculatorKey({
 }) {
   const scale = useRef(new Animated.Value(1)).current;
   const translateY = useRef(new Animated.Value(0)).current;
-  const bgAnim = useRef(new Animated.Value(0)).current;
-  const [isPressed, setIsPressed] = useState(false);
 
   const handlePressIn = () => {
-    setIsPressed(true);
-    if (__DEV__) {
-      console.log('[CalculatorKey] onPressIn:', keyId ?? label);
-    }
     if (onPressInHaptic) {
       onPressInHaptic();
     }
     if (onPressInKey) {
       onPressInKey(keyId ?? label);
     }
-    bgAnim.stopAnimation();
-    bgAnim.setValue(1);
     Animated.parallel([
-      Animated.spring(scale, {
-        toValue: 0.95,
-        speed: 65,
-        bounciness: 0,
+      Animated.timing(scale, {
+        toValue: 0.94,
+        duration: 50,
         useNativeDriver: true,
       }),
-      Animated.spring(translateY, {
+      Animated.timing(translateY, {
         toValue: 2,
-        speed: 65,
-        bounciness: 0,
+        duration: 50,
         useNativeDriver: true,
       }),
     ]).start();
   };
 
   const handlePressOut = () => {
-    setIsPressed(false);
     Animated.parallel([
-      Animated.spring(scale, {
+      Animated.timing(scale, {
         toValue: 1,
-        speed: 38,
-        bounciness: 5,
+        duration: 95,
         useNativeDriver: true,
       }),
-      Animated.spring(translateY, {
+      Animated.timing(translateY, {
         toValue: 0,
-        speed: 38,
-        bounciness: 5,
+        duration: 95,
         useNativeDriver: true,
       }),
     ]).start();
-    Animated.timing(bgAnim, {
-      toValue: 0,
-      duration: 140,
-      useNativeDriver: false,
-    }).start();
   };
 
   const handlePress = () => {
@@ -80,12 +62,6 @@ export const CalculatorKey = memo(function CalculatorKey({
       onPressKey(keyId ?? label);
     }
   };
-
-  const activeElevation = isPressed ? 1 : elevation;
-  const animatedBg = bgAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [backgroundColor, pressedBackgroundColor || backgroundColor],
-  });
 
   return (
     <Animated.View
@@ -103,42 +79,36 @@ export const CalculatorKey = memo(function CalculatorKey({
         onPressOut={handlePressOut}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel || label}
-        style={[
-          styles.pressableOuter,
+        style={({ pressed }) => [
+          styles.pressable,
           {
+            backgroundColor:
+              pressed && pressedBackgroundColor
+                ? pressedBackgroundColor
+                : backgroundColor,
+            borderColor,
             borderRadius,
-            elevation: activeElevation,
+            elevation: pressed ? 1 : elevation,
             shadowColor: '#000000',
-            shadowOffset: { width: 0, height: isPressed ? 1 : 3 },
-            shadowOpacity: isPressed ? 0.05 : 0.14,
-            shadowRadius: isPressed ? 1 : 4,
+            shadowOffset: { width: 0, height: pressed ? 1 : 3 },
+            shadowOpacity: pressed ? 0.05 : 0.14,
+            shadowRadius: pressed ? 1 : 4,
           },
         ]}
       >
-        <Animated.View
-          style={[
-            styles.pressableInner,
-            {
-              backgroundColor: animatedBg,
-              borderColor,
-              borderRadius,
-            },
-          ]}
-        >
-          {icon || (
-            <Text
-              style={[
-                styles.text,
-                {
-                  color: textColor,
-                  fontSize,
-                },
-              ]}
-            >
-              {label}
-            </Text>
-          )}
-        </Animated.View>
+        {icon || (
+          <Text
+            style={[
+              styles.text,
+              {
+                color: textColor,
+                fontSize,
+              },
+            ]}
+          >
+            {label}
+          </Text>
+        )}
       </Pressable>
     </Animated.View>
   );
@@ -148,10 +118,7 @@ const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
   },
-  pressableOuter: {
-    flex: 1,
-  },
-  pressableInner: {
+  pressable: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',

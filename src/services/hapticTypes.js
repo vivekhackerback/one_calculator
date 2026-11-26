@@ -1,13 +1,13 @@
 export const HAPTIC_ACTION_SPECS = {
-  number: { intensity: 'light', androidType: 'keyboard-tap', fallbackMs: 12 },
-  operator: { intensity: 'light', androidType: 'keyboard-tap', fallbackMs: 12 },
-  decimal: { intensity: 'light', androidType: 'keyboard-tap', fallbackMs: 12 },
-  selection: { intensity: 'light', androidType: 'keyboard-tap', fallbackMs: 12 },
-  light: { intensity: 'light', androidType: 'keyboard-tap', fallbackMs: 12 },
-  delete: { intensity: 'medium', androidType: 'virtual-key', fallbackMs: 22 },
-  clear: { intensity: 'medium', androidType: 'virtual-key', fallbackMs: 22 },
-  equals: { intensity: 'medium', androidType: 'virtual-key', fallbackMs: 22 },
-  medium: { intensity: 'medium', androidType: 'virtual-key', fallbackMs: 22 },
+  number: { intensity: 'light', androidType: 'keyboard-tap', fallbackMs: 40 },
+  operator: { intensity: 'light', androidType: 'keyboard-tap', fallbackMs: 40 },
+  decimal: { intensity: 'light', androidType: 'keyboard-tap', fallbackMs: 40 },
+  selection: { intensity: 'light', androidType: 'keyboard-tap', fallbackMs: 40 },
+  light: { intensity: 'light', androidType: 'keyboard-tap', fallbackMs: 40 },
+  delete: { intensity: 'medium', androidType: 'virtual-key', fallbackMs: 65 },
+  clear: { intensity: 'medium', androidType: 'virtual-key', fallbackMs: 65 },
+  equals: { intensity: 'medium', androidType: 'virtual-key', fallbackMs: 65 },
+  medium: { intensity: 'medium', androidType: 'virtual-key', fallbackMs: 65 },
 };
 
 /**
