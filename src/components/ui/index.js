@@ -3,6 +3,7 @@ export { CalculatorCard } from './CalculatorCard';
 export { CalculatorIcon } from './CalculatorIcon';
 export { Card } from './Card';
 export { CategoryChip } from './CategoryChip';
+export { DateWheelPicker } from './DateWheelPicker';
 export { EmptyState } from './EmptyState';
 export { InputField } from './InputField';
 export { ScreenContainer } from './ScreenContainer';

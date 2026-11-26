@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { InputField } from '../../ui';
+import { DateWheelPicker, InputField } from '../../ui';
 import { CalculatorLayout } from '../CalculatorLayout';
 import { ResultCard } from '../ResultCard';
 import { calculateAge } from '../../../utils/calculators/age';
-import { formatISODate } from '../../../utils/calculators/dateUtils';
+import { formatDMYDate, formatISOToDMY } from '../../../utils/calculators/dateUtils';
+
+const DEFAULT_DOB = '2000-01-01';
 
 export function AgeCalculatorScreen({
   calculator,
@@ -11,8 +13,8 @@ export function AgeCalculatorScreen({
   onToggleFavorite = null,
   onRecordHistory = null,
 }) {
-  const [dob, setDob] = useState('');
-  const [targetDate, setTargetDate] = useState(() => formatISODate());
+  const [dob, setDob] = useState(DEFAULT_DOB);
+  const [targetDate, setTargetDate] = useState(() => formatDMYDate());
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
 
@@ -29,15 +31,15 @@ export function AgeCalculatorScreen({
       onRecordHistory({
         calculatorId: calculator.id,
         calculatorName: calculator.name,
-        inputSummary: `DOB: ${dob} | As of: ${targetDate}`,
+        inputSummary: `DOB: ${formatISOToDMY(dob)} | As of: ${targetDate}`,
         resultSummary: `${res.years} yrs, ${res.months} mos, ${res.days} days`,
       });
     }
   };
 
   const handleReset = () => {
-    setDob('');
-    setTargetDate(formatISODate());
+    setDob(DEFAULT_DOB);
+    setTargetDate(formatDMYDate());
     setResult(null);
     setError('');
   };
@@ -71,21 +73,19 @@ export function AgeCalculatorScreen({
         ) : null
       }
     >
-      <InputField
+      <DateWheelPicker
         label="Date of Birth"
         value={dob}
-        onChangeText={setDob}
-        placeholder="YYYY-MM-DD (e.g. 1998-05-15)"
-        keyboardType="numbers-and-punctuation"
-        helperText="Format: YYYY-MM-DD"
+        onChange={setDob}
+        helperText="Scroll or tap Day, Month, and Year"
       />
       <InputField
         label="Calculate Age As Of"
         value={targetDate}
         onChangeText={setTargetDate}
-        placeholder="YYYY-MM-DD"
+        placeholder="DD-MM-YYYY"
         keyboardType="numbers-and-punctuation"
-        helperText="Defaults to today's date"
+        helperText="Format: DD-MM-YYYY (defaults to today)"
       />
     </CalculatorLayout>
   );

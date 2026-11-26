@@ -27,3 +27,11 @@ test('age calculator rejects invalid dates and future DOB', () => {
   assert.equal(calculateAge('2030-01-01', '2026-11-25').ok, false);
   assert.equal(calculateAge('not-a-date', '2026-11-25').ok, false);
 });
+
+test('age calculator supports DD-MM-YYYY and DD MM YYYY formats', () => {
+  const res = calculateAge('15-01-2000', '25 11 2026');
+  assert.equal(res.ok, true);
+  assert.equal(res.years, 26);
+  assert.equal(res.months, 10);
+  assert.equal(res.days, 10);
+});

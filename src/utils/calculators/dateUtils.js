@@ -1,17 +1,28 @@
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 /**
- * Parse a YYYY-MM-DD string into a UTC Date at midnight, validating calendar accuracy.
+ * Parse a YYYY-MM-DD or DD-MM-YYYY / DD MM YYYY / DD/MM/YYYY string into a UTC Date at midnight.
  */
 export function parseISODate(dateStr) {
   if (typeof dateStr !== 'string') return null;
   const trimmed = dateStr.trim();
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
-  if (!match) return null;
 
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
+  let year;
+  let month;
+  let day;
+
+  const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (isoMatch) {
+    year = Number(isoMatch[1]);
+    month = Number(isoMatch[2]);
+    day = Number(isoMatch[3]);
+  } else {
+    const dmyMatch = /^(\d{2})[-/\s](\d{2})[-/\s](\d{4})$/.exec(trimmed);
+    if (!dmyMatch) return null;
+    day = Number(dmyMatch[1]);
+    month = Number(dmyMatch[2]);
+    year = Number(dmyMatch[3]);
+  }
 
   if (month < 1 || month > 12 || day < 1 || day > 31) return null;
 
@@ -24,6 +35,19 @@ export function parseISODate(dateStr) {
     return null;
   }
   return date;
+}
+
+export function formatDMYDate(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${d}-${m}-${y}`;
+}
+
+export function formatISOToDMY(isoStr) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec((isoStr || '').trim());
+  if (!match) return isoStr;
+  return `${match[3]}-${match[2]}-${match[1]}`;
 }
 
 export function formatISODate(date = new Date()) {
