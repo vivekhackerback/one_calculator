@@ -464,12 +464,30 @@ export function BasicCalculatorScreen({
   const maxResultFontSize = Math.min(28, Math.floor(resultRegionHeight / 1.48));
 
   const handleScrollExpressionEnd = useCallback(() => {
-    expressionScrollRef.current?.scrollToEnd({ animated: false });
+    requestAnimationFrame(() => {
+      expressionScrollRef.current?.scrollToEnd({ animated: false });
+    });
   }, []);
 
   const handleScrollResultEnd = useCallback(() => {
-    resultScrollRef.current?.scrollToEnd({ animated: false });
+    requestAnimationFrame(() => {
+      resultScrollRef.current?.scrollToEnd({ animated: false });
+    });
   }, []);
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      expressionScrollRef.current?.scrollToEnd({ animated: false });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [formattedExpression]);
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      resultScrollRef.current?.scrollToEnd({ animated: false });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [formattedResult]);
 
   const expressionFontMetrics = useMemo(
     () =>
@@ -677,7 +695,10 @@ export function BasicCalculatorScreen({
               keyboardShouldPersistTaps="always"
               onContentSizeChange={handleScrollExpressionEnd}
               style={styles.horizontalScroll}
-              contentContainerStyle={styles.horizontalTextScrollContent}
+              contentContainerStyle={[
+                styles.horizontalTextScrollContent,
+                { minWidth: effectiveDisplayWidth },
+              ]}
             >
               <Text
                 style={[
@@ -718,7 +739,10 @@ export function BasicCalculatorScreen({
               keyboardShouldPersistTaps="always"
               onContentSizeChange={handleScrollResultEnd}
               style={styles.horizontalScroll}
-              contentContainerStyle={styles.horizontalTextScrollContent}
+              contentContainerStyle={[
+                styles.horizontalTextScrollContent,
+                { minWidth: effectiveDisplayWidth },
+              ]}
             >
               <Text
                 style={[
@@ -1062,9 +1086,10 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   horizontalTextScrollContent: {
-    flexGrow: 1,
     justifyContent: 'flex-end',
     alignItems: 'center',
+    flexDirection: 'row',
+    paddingRight: 4,
   },
   expressionText: {
     fontSize: 44,
